@@ -1,0 +1,17 @@
+#' Calculated annual grid imports and exports as a function of installed solar and battery capacity for 155 households
+#'
+#' solar PV + battery system import and export table for 155 CER control group households. Used to find the financially optimal system.
+#'
+#' derived from CER 2010 dataset
+#'
+#' @format A data frame with 114855 rows and 6 variables:
+#' \describe{
+#'   \item{housecode}{CER household code}
+#'   \item{solar_capacity}{installed solar capacity 0-50kW in increments of 0.5kW}
+#'   \item{battery_capacity}{installed battery capacity 0-100kW in increments of 2.5KWh}
+#'   \item{demand}{annual demand in kWh (survey year 2010)}
+#'   \item{imports}{calculated total imports in kWh}
+#'   \item{exports}{calculated total exports in kWh}
+#'   #' }
+#' @source CER, pvWatts (NREL)
+"cer_systems"

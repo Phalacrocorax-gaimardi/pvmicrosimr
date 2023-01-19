@@ -1,0 +1,18 @@
+#' demographic characteristics of potential pv adopters
+#'
+#' Demographic variables used to build homophilous network for pv adopters
+#'
+#' @format A data frame with 1208 rows and 9 variables:
+#' \describe{
+#'   \item{ID}{ID}
+#'   \item{age}{age ranges}
+#'   \item{class}{social class (professional or non-professional)}
+#'   \item{gender}{gender}
+#'   \item{region}{region}
+#'   \item{area_type}{urban or rural}
+#'   \item{profession}{profession type}
+#'   \item{education}{education level}
+#'   \item{degree}{social network degree - raw answer from survey, not binned data}
+#' }
+#' @source subjective
+"pv_society"
