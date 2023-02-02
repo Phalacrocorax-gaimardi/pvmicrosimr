@@ -18,6 +18,7 @@
 #pv_society_oo <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/Survey/pv_society_oo.csv")
 
 #scenario_wem <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx", sheet="scenario_WEM")
+#use_data(scenario_wem,overwrite = T)
 #empirical_utils <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/empirical_utils.csv")
 #agents_init <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/agents_init.csv")
 #survey_raw <- readr::read_csv("~/Policy/AgentBasedModels/Survey/ESB Final data +LCA.csv")

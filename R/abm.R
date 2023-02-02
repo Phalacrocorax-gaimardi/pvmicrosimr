@@ -34,8 +34,11 @@ scenario_params_df <- function(sD,yeartime){
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_lower_grant", value =  dplyr::filter(sD, parameter=="sol_lower_grant")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_upper_grant", value =  dplyr::filter(sD, parameter=="sol_upper_grant")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_lower_threshold", value =  dplyr::filter(sD, parameter=="sol_lower_threshold")$value))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="grant_introduction_date", value =  dplyr::filter(sD, parameter=="grant_introduction_date")$value))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="grant_removal_date", value =  dplyr::filter(sD, parameter=="grant_removal_date")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_threshold", value =  dplyr::filter(sD, parameter=="bat_threshold")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_grant", value =  dplyr::filter(sD, parameter=="bat_grant")$value))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="self_sufficiency_effect", value =  self_sufficiency_fun(sD,yeartime)))
 
   return(scen)
 }
@@ -81,20 +84,34 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
   params <- scenario_params_df(scenario_wem,yeartime) %>% fast_params()
   test <- map_survey_to_cer(params,lambda)
   #owner occupier non-apartment
-  test <- test %>% dplyr::filter(q1 %in% 2:5,q3 %in% 1:2)
+  #test <- test %>% dplyr::filter(q1 %in% 2:5,q3 %in% 1:2)
   test$ID <- 1:dim(test)[1]
-  agents <- agents %>% dplyr::inner_join(test %>% dplyr::select(ID,housecode))
-  agents <- agents[,c(1,7,2:6)]
-  agents$old_solar <- 0
+  agents <- agents %>% dplyr::inner_join(test %>% dplyr::select(ID,housecode,qc1,region))
+
+  #housing type
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(house_type=pvmicrosimr::is_bungalow(qc1,region))
+  agents <- agents %>% dplyr::select(-qc1,-region)
+  #
+  agents <- agents %>% dplyr::inner_join(cer_demand)
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(roof_capacity=get_rooftop_solar_potential(house_type,demand))
+  agents <- agents %>% dplyr::rowwise() %>% dplyr::mutate(aspect=sample(c("South-North","SW-NE","SE-NW","East-West"),size=1))
+  agents <- agents[,c(1,7:8,11,9:10,2:6)]
+  agents$old_imports <- agents$demand
+  agents$old_exports <- 0
+  agents$old_solar1 <- 0
+  agents$old_solar2 <- 0
   agents$old_battery <- 0
-  agents$new_solar <- 0
+  agents$new_imports <- agents$demand
+  agents$new_exports <- 0
+  agents$new_solar1 <- 0
+  agents$new_solar2 <- 0
   agents$new_battery <- 0
   #add initial rooftop capacity excluding apartments !
-  cer_survey1 <- cer_survey %>% dplyr::filter(housing_type != 1) %>% dplyr::rowwise() %>% dplyr::mutate(rooftop_capacity = get_rooftop_solar_potential(floor_area,housing_type,bedrooms))
+  #cer_survey1 <- cer_survey %>% dplyr::filter(housing_type != 1) %>% dplyr::rowwise() %>% dplyr::mutate(rooftop_capacity = get_rooftop_solar_potential(floor_area,housing_type,bedrooms))
   #missing rooftop capacity values replaced with mean for housing_type
-  roof <- cer_survey1 %>% dplyr::group_by(housing_type) %>% dplyr::mutate(rooftop_capacity = ifelse(is.na(rooftop_capacity), mean(rooftop_capacity,na.rm=T),rooftop_capacity))
-  roof <- roof %>% dplyr::ungroup() %>% dplyr::select(housecode,rooftop_capacity)
-  agents <- agents %>% dplyr::inner_join(roof)
+  #roof <- cer_survey1 %>% dplyr::group_by(housing_type) %>% dplyr::mutate(rooftop_capacity = ifelse(is.na(rooftop_capacity), mean(rooftop_capacity,na.rm=T),rooftop_capacity))
+  #roof <- roof %>% dplyr::ungroup() %>% dplyr::select(housecode,rooftop_capacity)
+  #agents <- agents %>% dplyr::inner_join(roof)
   #set all social terms to zero
   agents$qsp21 <- 1
   #clipping
@@ -130,38 +147,44 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
 #' @param social_network artifical social network
 #' @param ignore_social option to ignore social effects. Default is FALSE.
 #' @param empirical_u empirical utility model (see empirical_utils)
+#' @param p. speed
+#' @param lambda. bias
 #'
 #' @return new agent dataframe
 #' @export
 #' @importFrom magrittr %>%
 #' @examples
-update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = empirical_utils){
+update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = empirical_utils, p.,lambda.){
 
   #
   du_social <- dplyr::filter(empirical_u,code=="qsp21")$du_average
   theta <- dplyr::filter(empirical_u,code=="theta")$du_average
-  #self-sufficiency
-  averse <- c(0,0,0,aversion_4.,aversion_5.)
-  #parameters from scenario corresponding to yeartime
+  #params at yeartime
   params <- scenario_params_df(sD,yeartime) %>% fast_params()
+  #self-sufficiency
+  averse <- c(0,0,0,aversion_4.,aversion_5.)*params$self_sufficiency_effect
+  #parameters from scenario corresponding to yeartime
 
   a_s <- agents_in
   a_s$transaction <- F
   a_s <- dplyr::ungroup(a_s)
 
-  a_s <- a_s %>% dplyr::mutate(old_solar=new_solar,old_battery=new_battery)
+  a_s <- a_s %>% dplyr::mutate(old_imports=new_imports,old_exports=new_imports,old_solar1=new_solar1,old_solar2 = new_solar2,old_battery=new_battery)
   #this subsample of agents decide to look at rooftop pv
   b_s <- dplyr::slice_sample(a_s,n=round(dim(a_s)[1]*p.))
-  b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_solar,old_battery,rooftop_capacity)
+  b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,house_type,aspect,roof_capacity,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_imports, old_exports,old_solar1,old_solar2,old_battery)
 
   get_sys_optimal <- function(params, b_s){
 
     #pv rooftop capacity constrained finacial utilities corresponding to costs in params
-    cer_sys <- b_s %>% dplyr::left_join(cer_systems) %>% dplyr::filter(solar_capacity < rooftop_capacity)
-    cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,imports,exports,solar_capacity,battery_capacity))
+    #find current (old) values of imports and exports
+    cer_sys <- b_s %>% dplyr::left_join(cer_systems)
+    #new system is an enhancement
+    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= roof_capacity,solar1 >= old_solar1, solar2 <= roof_capacity, solar2 >= old_solar2, battery >= old_battery)
+    cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
     cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
-    cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar=solar_capacity,new_battery=battery_capacity)
+    cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
     return(cer_sys_opt)
     #return(b_s %>% dplyr::inner_join(cer_sys_opt))
   }
@@ -170,10 +193,10 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   #add in self-sufficiency/aversion effect
   # and scale factor from calibration
   #add parial utilities
-  b_s1 <- b_s1 %>% dplyr::mutate(du_fin=beta.*w_q9_1*du+averse[q9_1])
-  b_s1 <- b_s1 %>% dplyr::mutate(du_social = dplyr::case_when(old_solar > 0~0,old_solar==0~w_qsp21*du_social[qsp21]))
+  b_s1 <- b_s1 %>% dplyr::mutate(du_fin=beta.*w_q9_1*du-averse[q9_1])
+  b_s1 <- b_s1 %>% dplyr::mutate(du_social = dplyr::case_when((old_solar1 > 0 || old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_qsp21*du_social[qsp21]))
   #+lambda. or +w_theta*lambda.?
-  b_s1 <- b_s1 %>% dplyr::mutate(du_theta = dplyr::case_when(old_solar > 0~0,old_solar==0~w_theta*theta+ lambda.))
+  b_s1 <- b_s1 %>% dplyr::mutate(du_theta = dplyr::case_when((old_solar1 > 0 || old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_theta*theta+ lambda.))
   b_s1 <- b_s1 %>% dplyr::mutate(du_tot = du_fin+du_social+du_theta)
   #some agents do not transact even when du_fin > 0
   b_s_transact <- b_s1 %>% dplyr::filter(du_tot > 0)
@@ -181,12 +204,13 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
   b_s_transact$transaction <- T
   b_s_notransact$transaction <- F
-  b_s_notransact <- b_s_notransact %>% dplyr::mutate(new_solar=old_solar,new_battery=old_battery)
+  #this line reverses transactions that would occur of du were only term
+  b_s_notransact <- b_s_notransact %>% dplyr::mutate(new_solar1=old_solar1,new_solar2=old_solar2,new_battery=old_battery)
   #b_s <- update_cars(b_s,params)
   #
   a_s <- dplyr::filter(a_s, !(ID %in% c(b_s_notransact$ID,b_s_transact$ID)))
   a_s <- dplyr::bind_rows(a_s,b_s_notransact,b_s_transact) %>% dplyr::arrange(as.numeric(ID))
-  a_s <- a_s %>% dplyr::mutate(new_solar = tidyr::replace_na(new_solar,0), new_battery = tidyr::replace_na(new_battery,0))
+  a_s <- a_s %>% dplyr::mutate(new_solar1 = tidyr::replace_na(new_solar1,0), new_solar2 = tidyr::replace_na(new_solar2,0),new_battery = tidyr::replace_na(new_battery,0))
   #recompute social variable
   ma <- igraph::get.adjacency(social_network)
   g <- social_network %>% tidygraph::activate(nodes) %>% dplyr::left_join(a_s,by="ID")
@@ -194,14 +218,15 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   #
   #fossil_nodes  <- igraph::V(g)$fuel == "fossil"
   #adopter_nodes <- igraph::V(g)$old_solar == 0 & igraph::V(g)$new_solar > 0
-  adopter_nodes <- igraph::V(g)$new_solar > 0
+  adopter_nodes <- igraph::V(g)$new_solar1 > 0 | igraph::V(g)$new_solar2 > 0
   a_s$qsp21 <- as.numeric(ma %*% adopter_nodes) #social reinforcement
   if(ignore_social) a_s$qsp21 <- 0 #no pvs assumed present in local network
   a_s <- a_s %>% dplyr::rowwise() %>% dplyr::mutate(qsp21 = min(qsp21+1,3)) #qsp21 encoding 1,2,3
-  agents_out <- a_s
-  print(paste("time", round(yeartime,1),"PV system adopters",dim(agents_out %>% dplyr::filter(new_solar > 0 & old_solar==0))[1]))
-  print(paste("PV system augmentors",dim(agents_out %>% dplyr::filter((old_solar > 0 & new_solar > old_solar) || (old_solar > 0 & new_battery > old_battery)))[1]))
-  return(dplyr::ungroup(agents_out))
+  #agents_out <- a_s
+  a_s <- a_s %>% dplyr::select(-du,-du_fin,-du_social,-du_theta,-du_tot)
+  print(paste("time", round(yeartime,1), "PV system adopters",dim(a_s %>% dplyr::filter( (new_solar1 > 0 & old_solar1==0) || (new_solar2 > 0 & old_solar2==0)))[1]))
+  print(paste("PV system augmentors",dim(a_s %>% dplyr::filter((old_solar1 > 0 & new_solar1 > old_solar1) || (old_solar2 > 0 & new_solar2 > old_solar2) || (old_solar1 > 0 & new_battery > old_battery) || (old_solar2 > 0 & new_battery > old_battery) ))[1]))
+  return(dplyr::ungroup(a_s))
 }
 
 #p. <- 0.05/6
@@ -236,8 +261,8 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
   #
   year_zero <- 2010
   #calibration params:: MOVED TO SYSTDATA WHEN CALIBRATION COMPLETE
-  #p. <- sD %>% dplyr::filter(parameter=="p.") %>% dplyr::pull(value)
-  #lambda. <- sD %>% dplyr::filter(parameter=="lambda.") %>% dplyr::pull(value)
+  p. <- sD %>% dplyr::filter(parameter=="p.") %>% dplyr::pull(value)
+  lambda. <- sD %>% dplyr::filter(parameter=="lambda.") %>% dplyr::pull(value)
   #print(paste("p.=",p.,"lambda.=",lambda.))
 
   #bi-monthly runs
@@ -276,7 +301,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
         #bi-monthly
         yeartime <- year_zero+(t-1)/6
         #yeartime <- year_zero + (t-1)
-        agent_ts[[t]] <- update_agents4(sD,yeartime,agent_ts[[t-1]],social_network=social,ignore_social, empirical_u = u_empirical) #static social network, everything else static
+        agent_ts[[t]] <- update_agents4(sD,yeartime,agent_ts[[t-1]],social_network=social,ignore_social, empirical_u = u_empirical,p.,lambda.) #static social network, everything else static
         #agent_ts[[t]] <- tibble::tibble(t=t)
       }
 
@@ -326,7 +351,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
         #
         #yeartime <- year_zero+(t-1)
         yeartime <- year_zero+(t-1)/6
-        agent_ts[[t]] <- update_agents4(sD,yeartime,agent_ts[[t-1]],social_network=social,ignore_social,u_empirical) #static social network, everything else static
+        agent_ts[[t]] <- update_agents4(sD,yeartime,agent_ts[[t-1]],social_network=social,ignore_social,u_empirical,p.,lambda.) #static social network, everything else static
         #agent_ts[[t]] <- tibble::tibble(t=t)
       }
 

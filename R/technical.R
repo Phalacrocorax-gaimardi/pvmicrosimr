@@ -1,46 +1,59 @@
 
 #' get_rooftop_solar_potential
 #'
-#' estimate the rofftop solar potential
+#' generate a rooftop solar capacity potential stochastically (log normal distribution). This is calibrated to BER data up to 2023 separately for
+#' bungalows and two-storey dwellings. Bungalows have a higher solar potential because of their relatively larger footprint. A stochastic shading factor is included via a shading_factor parameter.
 #'
-#' @param floor_area floor area in m2 from CER survey
-#' @param housing_type housing type from CER survey 1= apartment, 5=bungalow, 2:4 = houses
-#' @param bedrooms number of bedrooms
-#' @param roof_floor_ratio area roof relative to footprint of house
-#' @param usable_roof_fraction fraction of rooftop usable for solar PV
-#' @param kW_per_m2 kWp per m2 (technical parameter)
+#' @param housing_type housing type is "bungalow" or "two-storey"
+#' @param demand annual electricity demand in kWh
+#' @param roof_floor_ratio 2/sqrt(3) for 30 degree pitch
+#' @param usable_roof_fraction fraction of rooftop usable for solar PV default 0.8
+#' @param kWp_per_m2 kWp per m2 (technical parameter) default 0.15
+#' @param shading_factor mean capacity factor reduction factor due to shading
 #'
-#' @return potential installed solar capacity kWp.
+#' @return potential installed solar capacity kWp on half-roof
 #' @export
 #'
 #' @examples
-get_rooftop_solar_potential <- function(floor_area,housing_type,bedrooms,roof_floor_ratio = 1.3,usable_roof_fraction = 0.55,kW_per_m2 = 0.15){
+get_rooftop_solar_potential <- function(housing_type, demand,roof_floor_ratio = 2/sqrt(3),
+                                        usable_roof_fraction = 0.8, kWp_per_m2 = 0.15, shading_factor=0.85){
+  #assume areas are lognormally distributed
+  #parameters from BER
+  ceiling_area <- dplyr::case_when(housing_type=="bungalow"~rlnorm(1,4.56+0.000033*(demand-5000),0.456),
+                            housing_type!="bungalow"~rlnorm(1,4.19 + 0.000033*(demand-5000),0.485)) #bigger houses have bigger electricity use
+  kW <- kWp_per_m2*ceiling_area*roof_floor_ratio*usable_roof_fraction/2 #half-roof area
 
-  if(is.na(floor_area)){
+  return(kW*rbeta(1,shading_factor/(1-shading_factor),1)) #Beta function B(x,1) capacity factor shading model
 
-    fit <- lm(floor_area~housing_type+bedrooms,cer_survey)
-    floor_area <- predict(fit,tibble::tibble(bedrooms=bedrooms,housing_type=housing_type))
-  }
-
-  #roof_floor_ratio <- 1.3
-
-  roof_area <- dplyr::case_when(housing_type == 1~0, #apartments assumed to have zero rooftop
-                         housing_type %in% c(2:4)~roof_floor_ratio*floor_area/2, #assume 2 equal area storey
-                         housing_type ==5~roof_floor_ratio*floor_area
-  )
-
-  #usable_roof_fraction <- 0.5
-
-  usable_roof_area <- usable_roof_fraction*roof_area
-
-  #kW_per_m2 <- 0.15 #SEAI 150Wp/m2
-
-  return(usable_roof_area*kW_per_m2)
 }
-
 #cer <- cer_survey %>% rowwise() %>% mutate(rooftop_potential = get_rooftop_solar_potential(housing_type,bedrooms,floor_area))
 
 #test %>% ggplot(aes(rooftop_potential)) + geom_histogram() #looks lognormal
+
+
+
+#' is_bungalow
+#'
+#' Is this dwelling a bungalow or not based on urban/rural (qc1) and region? Consistent with overall bungalow share of 20% and lower number of bungalows in urban areas
+#' in BER data.
+#'
+#' @param qc1 qc1=1 rural qc1=2 urban
+#' @param region Dublin, Leinster, Munster, Connulster
+#'
+#' @return "bungalow" or "two-storey"
+#' @export
+#'
+#' @examples
+is_bungalow <- function(qc1,region){
+  #probabilities from BER
+  #inference using naive Bayes is a very bad idea qc1 & region not conditionally independent
+  prob_b <- dplyr::case_when((region==1 & qc1==1)~0.25,(region==1 & qc1==2)~0.1,
+                      (region==2 & qc1==1)~0.26,(region==2 & qc1==2)~0.15,
+                      (region==3 & qc1==1)~0.3,(region==3 & qc1==2)~0.15,
+                      (region==4 & qc1==1)~0.4,(region==4 & qc1==2)~0.15)
+  return(sample(c("bungalow","two-storey"),size=1,prob=c(prob_b,1-prob_b)))
+}
+
 
 
 pv_system_efficiency <- function(sD,yeartime){
@@ -54,3 +67,5 @@ pv_system_efficiency <- function(sD,yeartime){
 shockley_quisser*inverter_eff/(1+lambda*(yeartime-1990)^(-eta))
 
 }
+
+

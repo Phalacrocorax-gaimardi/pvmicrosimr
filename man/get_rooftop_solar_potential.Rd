@@ -5,30 +5,31 @@
 \title{get_rooftop_solar_potential}
 \usage{
 get_rooftop_solar_potential(
-  floor_area,
   housing_type,
-  bedrooms,
-  roof_floor_ratio = 1.3,
-  usable_roof_fraction = 0.55,
-  kW_per_m2 = 0.15
+  demand,
+  roof_floor_ratio = 2/sqrt(3),
+  usable_roof_fraction = 0.8,
+  kWp_per_m2 = 0.15,
+  shading_factor = 0.85
 )
 }
 \arguments{
-\item{floor_area}{floor area in m2 from CER survey}
+\item{housing_type}{housing type is "bungalow" or "two-storey"}
 
-\item{housing_type}{housing type from CER survey 1= apartment, 5=bungalow, 2:4 = houses}
+\item{demand}{annual electricity demand in kWh}
 
-\item{bedrooms}{number of bedrooms}
+\item{roof_floor_ratio}{2/sqrt(3) for 30 degree pitch}
 
-\item{roof_floor_ratio}{area roof relative to footprint of house}
+\item{usable_roof_fraction}{fraction of rooftop usable for solar PV default 0.8}
 
-\item{usable_roof_fraction}{fraction of rooftop usable for solar PV}
+\item{kWp_per_m2}{kWp per m2 (technical parameter) default 0.15}
 
-\item{kW_per_m2}{kWp per m2 (technical parameter)}
+\item{shading_factor}{mean capacity factor reduction factor due to shading}
 }
 \value{
-potential installed solar capacity kWp.
+potential installed solar capacity kWp on half-roof
 }
 \description{
-estimate the rofftop solar potential
+generate a rooftop solar capacity potential stochastically (log normal distribution). This is calibrated to BER data up to 2023 separately for
+bungalows and two-storey dwellings. Bungalows have a higher solar potential because of their relatively larger footprint. A stochastic shading factor is included via a shading_factor parameter.
 }

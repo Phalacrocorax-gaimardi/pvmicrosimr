@@ -82,6 +82,12 @@ relevant survey data is in *pv_survey_oo*.
 A dataset derived from the half-hourly CER smart-meter trial demand data
 are contained in *cer_systems*.
 
+*cer_systems* provides annual demand, imported and exported energy for
+155 households as a function of solar pv installed on roof 1 and roof 2
+of a compound roof for 4 orientations (South-North, SW-NE, SE-NW,
+East-West). This currently uses a single solar irradiance dataset from
+Birr Co. Offaly. The roof pitch assumed is 30$\degree$.
+
 ## Model Details
 
 Agents consists of 759 non-apartment own-occupiers. The model start year

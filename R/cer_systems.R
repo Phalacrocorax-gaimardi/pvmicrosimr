@@ -4,12 +4,14 @@
 #'
 #' derived from CER 2010 dataset
 #'
-#' @format A data frame with 114855 rows and 6 variables:
+#' @format A data frame with 14,513,580 rows and 8 variables:
 #' \describe{
 #'   \item{housecode}{CER household code}
-#'   \item{solar_capacity}{installed solar capacity 0-50kW in increments of 0.5kW}
-#'   \item{battery_capacity}{installed battery capacity 0-100kW in increments of 2.5KWh}
 #'   \item{demand}{annual demand in kWh (survey year 2010)}
+#'   \item{aspect}{orientation of house}
+#'   \item{solar1}{installed solar capacity 0-25kW in increments of 0.5kW on first half-roof}
+#'  \item{solar2}{installed solar capacity 0-25kW in increments of 0.5kW on second half-roof}
+#'   \item{battery}{installed battery capacity 0-100kW in increments of 2.5KWh}
 #'   \item{imports}{calculated total imports in kWh}
 #'   \item{exports}{calculated total exports in kWh}
 #'   #' }

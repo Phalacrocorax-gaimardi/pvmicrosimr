@@ -10,7 +10,9 @@ update_agents4(
   agents_in,
   social_network,
   ignore_social = F,
-  empirical_u = empirical_utils
+  empirical_u = empirical_utils,
+  p.,
+  lambda.
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ update_agents4(
 \item{ignore_social}{option to ignore social effects. Default is FALSE.}
 
 \item{empirical_u}{empirical utility model (see empirical_utils)}
+
+\item{p.}{speed}
+
+\item{lambda.}{bias}
 }
 \value{
 new agent dataframe
