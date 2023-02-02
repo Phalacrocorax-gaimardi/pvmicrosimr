@@ -378,7 +378,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
 
 #p. <- 0.008
 #lambda. <- 0.097
-#use_data(beta.,aversion_4.,aversion_5.,p.,lambda.,overwrite=T,internal=T)
+#use_data(beta.,aversion_4.,aversion_5.,p.,lambda.,overwrite=T,internal=T,version=3)
 
 #test[[1]] %>% group_by(t,simulation) %>% summarise(bat=sum(new_battery)) %>% ggplot(aes(2010+(t-1),bat,colour=factor(simulation))) + geom_line() + scale_y_continuous(trans="sqrt")
 #test[[1]] %>% group_by(t,simulation) %>% summarise(pv=sum(new_solar)) %>% ggplot(aes(2010+(t-1),pv,colour=factor(simulation))) + geom_line() + scale_y_continuous(trans="sqrt")
