@@ -2,7 +2,7 @@
 # CER data & modelling
 ######################
 
-#cer_systems<- read_csv("~/Policy/AgentBasedModels/solarPV/cer_system_data.csv")
+#cer_systems <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/cer_systems.csv")
 #cer_survey <- read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/cer_survey_reduced/cer_survey.csv")
 #cer_survey$floor_area_unit <- NULL
 #cer_survey$housing_year <- NULL

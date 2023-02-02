@@ -194,9 +194,9 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   # and scale factor from calibration
   #add parial utilities
   b_s1 <- b_s1 %>% dplyr::mutate(du_fin=beta.*w_q9_1*du-averse[q9_1])
-  b_s1 <- b_s1 %>% dplyr::mutate(du_social = dplyr::case_when((old_solar1 > 0 || old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_qsp21*du_social[qsp21]))
+  b_s1 <- b_s1 %>% dplyr::mutate(du_social = dplyr::case_when((old_solar1 > 0 | old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_qsp21*du_social[qsp21]))
   #+lambda. or +w_theta*lambda.?
-  b_s1 <- b_s1 %>% dplyr::mutate(du_theta = dplyr::case_when((old_solar1 > 0 || old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_theta*theta+ lambda.))
+  b_s1 <- b_s1 %>% dplyr::mutate(du_theta = dplyr::case_when((old_solar1 > 0 | old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_theta*theta+ lambda.))
   b_s1 <- b_s1 %>% dplyr::mutate(du_tot = du_fin+du_social+du_theta)
   #some agents do not transact even when du_fin > 0
   b_s_transact <- b_s1 %>% dplyr::filter(du_tot > 0)
@@ -224,8 +224,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   a_s <- a_s %>% dplyr::rowwise() %>% dplyr::mutate(qsp21 = min(qsp21+1,3)) #qsp21 encoding 1,2,3
   #agents_out <- a_s
   a_s <- a_s %>% dplyr::select(-du,-du_fin,-du_social,-du_theta,-du_tot)
-  print(paste("time", round(yeartime,1), "PV system adopters",dim(a_s %>% dplyr::filter( (new_solar1 > 0 & old_solar1==0) || (new_solar2 > 0 & old_solar2==0)))[1]))
-  print(paste("PV system augmentors",dim(a_s %>% dplyr::filter((old_solar1 > 0 & new_solar1 > old_solar1) || (old_solar2 > 0 & new_solar2 > old_solar2) || (old_solar1 > 0 & new_battery > old_battery) || (old_solar2 > 0 & new_battery > old_battery) ))[1]))
+  print(paste("time", round(yeartime,1), "PV system adopters",dim(a_s %>% dplyr::filter( (new_solar1 > 0 & old_solar1==0) | (new_solar2 > 0 & old_solar2==0)))[1]))
+  print(paste("PV system augmentors",dim(a_s %>% dplyr::filter((old_solar1 > 0 & new_solar1 > old_solar1) | (old_solar2 > 0 & new_solar2 > old_solar2) | (old_solar1 > 0 & new_battery > old_battery) || (old_solar2 > 0 & new_battery > old_battery) ))[1]))
   return(dplyr::ungroup(a_s))
 }
 
