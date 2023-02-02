@@ -86,7 +86,9 @@ are contained in *cer_systems*.
 155 households as a function of solar pv installed on roof 1 and roof 2
 of a compound roof for 4 orientations (South-North, SW-NE, SE-NW,
 East-West). This currently uses a single solar irradiance dataset from
-Birr Co. Offaly. The roof pitch assumed is 30$\degree$.
+Birr Co. Offaly. The roof pitch assumed is 30$\degree$. Solar1 and
+solar2 increments 0.5kWp up to 12.5kWp then 1KWp thereafter up to 25kWp.
+Therefore the max rooftop capacity is 50kWp.
 
 ## Model Details
 
