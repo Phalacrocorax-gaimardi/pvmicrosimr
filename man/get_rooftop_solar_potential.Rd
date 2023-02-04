@@ -8,7 +8,7 @@ get_rooftop_solar_potential(
   housing_type,
   demand,
   roof_floor_ratio = 2/sqrt(3),
-  usable_roof_fraction = 0.8,
+  usable_roof_fraction = 0.85,
   kWp_per_m2 = 0.15,
   shading_factor = 0.85
 )

@@ -18,7 +18,7 @@
 #pv_society_oo <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/Survey/pv_society_oo.csv")
 
 #scenario_wem <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx", sheet="scenario_WEM")
-#use_data(scenario_wem,overwrite = T)
+#use_data(scenario_wem,overwrite = T,version=3)
 #empirical_utils <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/empirical_utils.csv")
 #agents_init <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/agents_init.csv")
 #survey_raw <- readr::read_csv("~/Policy/AgentBasedModels/Survey/ESB Final data +LCA.csv")
@@ -73,8 +73,8 @@ map_survey_to_cer <-function(params,lambda=2){
 
   #survey_raw <- read_csv("~/Policy/AgentBasedModels/Survey/ESB Final data +LCA.csv")
   #bills <- survey_raw$q9_1 %>% na_if(9999)
-  pv_survey1 <- pv_survey
-  pv_survey1$bill <- bills$q9_1
+  pv_survey1 <- pv_survey_oo
+  pv_survey1$bill <- bills_oo
   #fill in missing bills
   #replace by median bill in category
   pv_survey1 <- pv_survey1 %>% dplyr::mutate(bill=dplyr::na_if(bill,9999))

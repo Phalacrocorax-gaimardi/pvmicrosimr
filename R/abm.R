@@ -39,11 +39,17 @@ scenario_params_df <- function(sD,yeartime){
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_threshold", value =  dplyr::filter(sD, parameter=="bat_threshold")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_grant", value =  dplyr::filter(sD, parameter=="bat_grant")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="self_sufficiency_effect", value =  self_sufficiency_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="kWp_per_m2", value =  kWp_per_m2_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="usable_roof_fraction", value =  dplyr::filter(sD, parameter=="usable_roof_fraction")$value))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="mean_shading_factor", value =  dplyr::filter(sD, parameter=="mean_shading_factor")$value))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="acceleration_factor", value =  acceleration_fun(sD,yeartime)))
 
-  return(scen)
+  return(scen %>% fast_params())
 }
 
 #' fast_params
+#'
+#' helper function to convert a long format dataframe to an environment object, used for fast access to scenario parameters
 #'
 #' @param params_long long format dataframe with columns "parameter" and "value"
 #'
@@ -81,7 +87,7 @@ fast_params <- function(params_long){
 initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
 
   #initialise to 2010
-  params <- scenario_params_df(scenario_wem,yeartime) %>% fast_params()
+  params <- scenario_params_df(scenario_wem,yeartime)
   test <- map_survey_to_cer(params,lambda)
   #owner occupier non-apartment
   #test <- test %>% dplyr::filter(q1 %in% 2:5,q3 %in% 1:2)
@@ -93,9 +99,12 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
   agents <- agents %>% dplyr::select(-qc1,-region)
   #
   agents <- agents %>% dplyr::inner_join(cer_demand)
-  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(roof_capacity=get_rooftop_solar_potential(house_type,demand))
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(area1=get_rooftop_solar_area(house_type,demand))
+  agents <- agents %>% dplyr::mutate(area2 = area1 )
+  #primitive shading model
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(shading1=rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1), shading2 = rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1))
   agents <- agents %>% dplyr::rowwise() %>% dplyr::mutate(aspect=sample(c("South-North","SW-NE","SE-NW","East-West"),size=1))
-  agents <- agents[,c(1,7:8,11,9:10,2:6)]
+  agents <- agents[,c(1,7:14,2:6)]
   agents$old_imports <- agents$demand
   agents$old_exports <- 0
   agents$old_solar1 <- 0
@@ -160,10 +169,12 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   du_social <- dplyr::filter(empirical_u,code=="qsp21")$du_average
   theta <- dplyr::filter(empirical_u,code=="theta")$du_average
   #params at yeartime
-  params <- scenario_params_df(sD,yeartime) %>% fast_params()
+  params <- scenario_params_df(sD,yeartime)
   #self-sufficiency
   averse <- c(0,0,0,aversion_4.,aversion_5.)*params$self_sufficiency_effect
   #parameters from scenario corresponding to yeartime
+
+  kWpm2 <- params$kWp_per_m2
 
   a_s <- agents_in
   a_s$transaction <- F
@@ -171,8 +182,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
   a_s <- a_s %>% dplyr::mutate(old_imports=new_imports,old_exports=new_imports,old_solar1=new_solar1,old_solar2 = new_solar2,old_battery=new_battery)
   #this subsample of agents decide to look at rooftop pv
-  b_s <- dplyr::slice_sample(a_s,n=round(dim(a_s)[1]*p.))
-  b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,house_type,aspect,roof_capacity,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_imports, old_exports,old_solar1,old_solar2,old_battery)
+  b_s <- dplyr::slice_sample(a_s,n=round(dim(a_s)[1]*p.*params$acceleration_factor))
+  b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,house_type,aspect,area1,area2,shading1,shading2,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_imports, old_exports,old_solar1,old_solar2,old_battery)
 
   get_sys_optimal <- function(params, b_s){
 
@@ -180,10 +191,13 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #find current (old) values of imports and exports
     cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
-    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= roof_capacity,solar1 >= old_solar1, solar2 <= roof_capacity, solar2 >= old_solar2, battery >= old_battery)
+    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= kWpm2*area1,solar1 >= old_solar1, solar2 <= kWpm2*area2, solar2 >= old_solar2, battery >= old_battery)
+    #add shading factors in financial utility!
     cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
     cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
+    cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
+
     cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
     return(cer_sys_opt)
     #return(b_s %>% dplyr::inner_join(cer_sys_opt))

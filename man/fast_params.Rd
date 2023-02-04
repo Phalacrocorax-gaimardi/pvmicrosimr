@@ -13,5 +13,5 @@ fast_params(params_long)
 environment object
 }
 \description{
-fast_params
+helper function to convert a long format dataframe to an environment object, used for fast access to scenario parameters
 }
