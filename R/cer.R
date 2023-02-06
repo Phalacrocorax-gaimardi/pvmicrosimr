@@ -3,6 +3,7 @@
 ######################
 
 #cer_systems <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/cer_systems_reduced.csv")
+
 #cer_survey <- read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/cer_survey_reduced/cer_survey.csv")
 #cer_survey$floor_area_unit <- NULL
 #cer_survey$housing_year <- NULL
@@ -174,3 +175,5 @@ get_cer_sys_utils <- function(params){
   return(cer_sys)
 }
 
+
+#cer_systems <- dplyr::bind_rows(cer_systems1,cer_systems2,cer_systems3,cer_systems4)

@@ -1,6 +1,6 @@
 Package: pvmicrosimr
 Title: Agent-based modeling for Solar PV adoption by households 
-Version: 0.0.1.0000
+Version: 0.0.1.1000
 Authors@R: 
     person("Joseph", "Wheatley", , "joe.wheatley@ucd.ie", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
@@ -26,3 +26,4 @@ Imports:
     doParallel,
     cluster,
     data.table,
+    pracma,

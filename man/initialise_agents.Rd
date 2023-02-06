@@ -16,8 +16,8 @@ initialise_agents(agents, yeartime, lambda = 2, clipping = T)
 \item{clipping}{whether to clip weights to >=0}
 }
 \value{
-a dataframe
+a dataframe with columns
 }
 \description{
-creates the agent initial state including model weights, randomised rooftop capacities and a mapping of survey agents to CER dataset. It is assumed that solar pv systems are absent at yeartime e.g. 2010
+creates the agent initial state including model weights, randomised available rooftop areas for solar PV and a mapping of survey agents to CER dataset. It is assumed that solar pv systems are absent at yeartime e.g. 2010
 }

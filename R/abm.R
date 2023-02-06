@@ -73,14 +73,14 @@ fast_params <- function(params_long){
 
 #' initialise_agents
 #'
-#' creates the agent initial state including model weights, randomised rooftop capacities and a mapping of survey agents to CER dataset. It is assumed that solar pv systems are absent at yeartime e.g. 2010
+#' creates the agent initial state including model weights, randomised available rooftop areas for solar PV and a mapping of survey agents to CER dataset. It is assumed that solar pv systems are absent at yeartime e.g. 2010
 #'
 #' @param agents the model dataframe
 #' @param yeartime start year (default 2010)
 #' @param lambda demand matching parameter. Large lambda is more strict.
 #' @param clipping whether to clip weights to >=0
 #'
-#' @return a dataframe
+#' @return a dataframe with columns
 #' @export
 #'
 #' @examples
@@ -173,7 +173,6 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   #self-sufficiency
   averse <- c(0,0,0,aversion_4.,aversion_5.)*params$self_sufficiency_effect
   #parameters from scenario corresponding to yeartime
-
   kWpm2 <- params$kWp_per_m2
 
   a_s <- agents_in
@@ -189,7 +188,9 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
     #pv rooftop capacity constrained finacial utilities corresponding to costs in params
     #find current (old) values of imports and exports
-    cer_sys <- b_s %>% dplyr::left_join(cer_systems)
+    cer_sys <- b_s %>% dplyr::left_join(dplyr::bind_rows(cer_systems1,cer_systems2,cer_systems3,cer_systems4))
+    cer_sys <- get_shaded_sys(cer_sys)
+    #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
     cer_sys <- cer_sys %>% dplyr::filter(solar1 <= kWpm2*area1,solar1 >= old_solar1, solar2 <= kWpm2*area2, solar2 >= old_solar2, battery >= old_battery)
     #add shading factors in financial utility!
