@@ -139,6 +139,16 @@ acceleration_fun <- function(sD,yeartime){
 
 
 
+#' get_shaded_sys
+#'
+#' estimated effect on annual energy imports and exports computed from a cer_sys dataframe
+#'
+#' @param cer_sys cer_system data (solar1 solar2 battery imports exports) with shading parameters for roof 1 & 2
+#'
+#' @return cer_system data with imports and exports including effect of shading
+#' @export
+#'
+#' @examples
 get_shaded_sys <- function(cer_sys){
 
   #returns a table of imports and exports for a shaded roof

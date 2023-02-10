@@ -99,7 +99,7 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
   agents <- agents %>% dplyr::select(-qc1,-region)
   #
   agents <- agents %>% dplyr::inner_join(cer_demand)
-  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(area1=get_rooftop_solar_area(house_type,demand))
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(area1=get_rooftop_solar_area(house_type,demand,usable_roof_fraction = params$usable_roof_fraction))
   agents <- agents %>% dplyr::mutate(area2 = area1 )
   #primitive shading model
   agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(shading1=rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1), shading2 = rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1))
@@ -189,6 +189,14 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #pv rooftop capacity constrained finacial utilities corresponding to costs in params
     #find current (old) values of imports and exports
     cer_sys <- b_s %>% dplyr::left_join(dplyr::bind_rows(cer_systems1,cer_systems2,cer_systems3,cer_systems4))
+
+    #cer_sys1 <- b_s %>% dplyr::left_join(cer_systems1)
+    #cer_sys2 <- b_s %>% dplyr::left_join(cer_systems2)
+    #cer_sys3 <- b_s %>% dplyr::left_join(cer_systems3)
+    #cer_sys4 <- b_s %>% dplyr::left_join(cer_systems4)
+    #cer_sys <- dplyr::bind_rows(cer_sys1,cer_sys2,cer_sys3,cer_sys4)
+
+
     cer_sys <- get_shaded_sys(cer_sys)
     #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
