@@ -181,7 +181,7 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
   a_s <- a_s %>% dplyr::mutate(old_imports=new_imports,old_exports=new_imports,old_solar1=new_solar1,old_solar2 = new_solar2,old_battery=new_battery)
   #this subsample of agents decide to look at rooftop pv
-  b_s <- dplyr::slice_sample(a_s,n=round(dim(a_s)[1]*p.*params$acceleration_factor))
+  b_s <- dplyr::slice_sample(a_s,n=roundr(dim(a_s)[1]*p.*params$acceleration_factor))
   b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,house_type,aspect,area1,area2,shading1,shading2,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_imports, old_exports,old_solar1,old_solar2,old_battery)
 
   get_sys_optimal <- function(params, b_s){

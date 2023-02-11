@@ -169,4 +169,18 @@ get_shaded_sys <- function(cer_sys){
 
 }
 
-
+#' roundr
+#'
+#' stochastic round
+#'
+#' @param x real number to be rounded up or down
+#'
+#' @return integer
+#' @export
+#'
+#' @examples
+roundr <- function(x){
+  x1 <- trunc(x)
+  weights = c(1+x1-x,x-x1)
+  return(sample(c(x1,x1+1),size=1,prob=weights))
+  }
