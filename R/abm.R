@@ -125,8 +125,8 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
   agents$qsp21 <- 1
   #clipping
   if(clipping){
-    x_min <- quantile(agents$w_q9_1,0.075)
-    x_max <- quantile(agents$w_q9_1,0.925)
+    x_min <- quantile(agents$w_q9_1,0.05)
+    x_max <- quantile(agents$w_q9_1,0.95)
     agents <- agents %>% dplyr::mutate(w_q9_1=dplyr::case_when(w_q9_1<=x_min~x_min,w_q9_1>x_max~x_max, (w_q9_1> x_min) & (w_q9_1 < x_max)~w_q9_1))
     x_min <- quantile(agents$w_qsp21,0.06)
     x_max <- quantile(agents$w_qsp21,0.94)
@@ -200,11 +200,13 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     cer_sys <- get_shaded_sys(cer_sys)
     #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
-    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= kWpm2*area1,solar1 >= old_solar1, solar2 <= kWpm2*area2, solar2 >= old_solar2, battery >= old_battery)
+    #area1,2 is the remaining area for solar
+    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, battery >= old_battery)
     #add shading factors in financial utility!
     cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
     cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
+    #reduce available area by
     cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
 
     cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
