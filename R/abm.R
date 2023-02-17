@@ -178,8 +178,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   a_s <- agents_in
   a_s$transaction <- F
   a_s <- dplyr::ungroup(a_s)
-
-  a_s <- a_s %>% dplyr::mutate(old_imports=new_imports,old_exports=new_imports,old_solar1=new_solar1,old_solar2 = new_solar2,old_battery=new_battery)
+  #update definitions of old and new for all agents
+  a_s <- a_s %>% dplyr::mutate(old_imports=new_imports,old_exports=new_exports,old_solar1=new_solar1,old_solar2 = new_solar2,old_battery=new_battery)
   #this subsample of agents decide to look at rooftop pv
   b_s <- dplyr::slice_sample(a_s,n=roundr(dim(a_s)[1]*p.*params$acceleration_factor))
   b_s <- b_s %>% dplyr::mutate(transaction=T) %>% dplyr::select(ID,housecode,house_type,aspect,area1,area2,shading1,shading2,w_q9_1,w_qsp21,w_theta,q9_1,qsp21,old_imports, old_exports,old_solar1,old_solar2,old_battery)
@@ -195,29 +195,39 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #cer_sys3 <- b_s %>% dplyr::left_join(cer_systems3)
     #cer_sys4 <- b_s %>% dplyr::left_join(cer_systems4)
     #cer_sys <- dplyr::bind_rows(cer_sys1,cer_sys2,cer_sys3,cer_sys4)
-
-
     cer_sys <- get_shaded_sys(cer_sys)
     #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
     #area1,2 is the remaining area for solar
-    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, battery >= old_battery)
+    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 > old_solar1, solar2 > old_solar2, battery >= old_battery)
     #add shading factors in financial utility!
     cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
-    cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
-    #reduce available area by
-    cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
+    if(dim(cer_sys)[1]==0) return(cer_sys)
+    if(dim(cer_sys)[1] > 0){
+     cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
+     #reduce available area by
+     cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
 
-    cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
-    return(cer_sys_opt)
+     cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
+     return(cer_sys_opt)
+    }
     #return(b_s %>% dplyr::inner_join(cer_sys_opt))
   }
   #financially optimal solar pv system
   b_s1 <- get_sys_optimal(params,b_s)
+  #if no transactions are possible (all roofs in b_s are at capacity) then just return a_s unchanged.
+  if(dim(b_s1)[1] == 0) {
+    print(paste("time", round(yeartime,1), "no PV system adopters because selected roofs at capacity"))
+    print(paste("PV system augmentors because selected roofs already at capacity"))
+    return(a_s)
+  }
+  #if there are potential transactions
+  if(dim(b_s1)[1] > 0) {
   #add in self-sufficiency/aversion effect
   # and scale factor from calibration
   #add parial utilities
+
   b_s1 <- b_s1 %>% dplyr::mutate(du_fin=beta.*w_q9_1*du-averse[q9_1])
   b_s1 <- b_s1 %>% dplyr::mutate(du_social = dplyr::case_when((old_solar1 > 0 | old_solar2 > 0)~0,(old_solar1==0 & old_solar2==0)~w_qsp21*du_social[qsp21]))
   #+lambda. or +w_theta*lambda.?
@@ -229,8 +239,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
   b_s_transact$transaction <- T
   b_s_notransact$transaction <- F
-  #this line reverses transactions that would occur of du were only term
-  b_s_notransact <- b_s_notransact %>% dplyr::mutate(new_solar1=old_solar1,new_solar2=old_solar2,new_battery=old_battery)
+  #this line reverses transactions that would occur if du were only term
+  b_s_notransact <- b_s_notransact %>% dplyr::mutate(new_solar1=old_solar1,new_solar2=old_solar2,new_battery=old_battery,new_imports=old_imports,new_exports=old_exports)
   #b_s <- update_cars(b_s,params)
   #
   a_s <- dplyr::filter(a_s, !(ID %in% c(b_s_notransact$ID,b_s_transact$ID)))
@@ -252,6 +262,7 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   print(paste("time", round(yeartime,1), "PV system adopters",dim(a_s %>% dplyr::filter( (new_solar1 > 0 & old_solar1==0) | (new_solar2 > 0 & old_solar2==0)))[1]))
   print(paste("PV system augmentors",dim(a_s %>% dplyr::filter((old_solar1 > 0 & new_solar1 > old_solar1) | (old_solar2 > 0 & new_solar2 > old_solar2) | (old_solar1 > 0 & new_battery > old_battery) || (old_solar2 > 0 & new_battery > old_battery) ))[1]))
   return(dplyr::ungroup(a_s))
+  }
 }
 
 #p. <- 0.05/6
@@ -280,6 +291,7 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 #' @return a three component list - simulation output, scenario setup, meta-parameters
 #' @export
 #' @importFrom magrittr %>%
+#' @importFrom lubridate %m+%
 #' @importFrom foreach %dopar%
 #'
 runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unused_cores=2, use_parallel=T,ignore_social=F){
@@ -391,6 +403,8 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
       #agent_ts
     }
     meta <- tibble::tibble(parameter=c("Nrun","end_year","beta.","aversion_4.","aversion_5.","lambda.","p."),value=c(Nrun,simulation_end,beta.,aversion_4.,aversion_5.,lambda.,p.))
+    #replace "t" with dates
+    abm <- abm %>% dplyr::mutate(date=lubridate::ymd("2010-02-01") %m+% months((t-1)*2)) %>% dplyr::arrange(simulation,date) %>% dplyr::select(-t)
     return(list("abm"=abm,"scenario"=sD,"system"=meta))
   }
 

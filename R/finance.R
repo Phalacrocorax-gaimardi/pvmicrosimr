@@ -414,30 +414,35 @@ get_sys_util_0 <- Vectorize(get_sys_util_0,c("demand","old_imports","new_imports
 #utils <- expand_grid(housecode=hcodes,solar_cap = seq(0,20,by=0.5), battery_cap = seq(0,20,by=2.5))
 
 
-#' rooftop_solar_generation_cost
+#' rooftop_solar_lcoe
 #'
-#' cost per kWh of a financed PV system (no battery or grants) with a lifetime of 20 years.
-#' installationa and panel costs are from cost_params
+#' a levelised cost per kWh of a fully financed PV system (with battery but grants) with a lifetime of 20 years.
+#' interest rate is ~ 5%. opex is zero.
+#' interest rate,installation and pv costs are from params
 #'
-#'
+#' @param params current parameter set
+#' @param capacity_factor capacity factor
 #' @param solar_capacity installed pv capacity
 #' @param finance_rate loan interest rate
-#' @param include_battery False
+#' @param include_battery default False
+#' @param battery_capacity battery capacity kWh
 #'
-#' @return price
+#' @return simple levelised system cost in euros per kWp
 #' @export
 #'
 #' @examples
-rooftop_solar_generation_cost <- function(solar_capacity,finance_rate=0.05, include_battery = F){
+rooftop_solar_lcoe <- function(params,capacity_factor,solar_capacity,finance_rate = NULL,include_battery = F, battery_capacity){
   #assumes term of loan = lifetime of system
   #exclude cost of grant
   #exclude cost of battery system
-  term_of_loan <- cost_params$system_lifetime
-  install_cost_pv <- cost_params$install_cost_pv
-  pv_cost_per_kW <- cost_params$pv_cost_per_kW
-  amort_payment <- amort(finance_rate,term_of_loan)*(install_cost+pv_cost_per_kW*solar_capacity)
-  total_gen <- 0.095*solar_capacity*24*265
-  return(amort_payment/total_gen %>% round(3))
+  if(is.null(finance_rate)) finance_rate <- params$finance_rate
+  term_of_loan <- params$system_lifetime
+  pv_install_cost <- params$pv_install_cost
+  pv_cost_per_kW <- params$pv_cost
+  if(!include_battery) amort_payment <- amort(finance_rate,term_of_loan)*(pv_install_cost+pv_cost_per_kW*solar_capacity)
+  if(include_battery)  amort_payment <- amort(finance_rate,term_of_loan)*(pv_install_cost+pv_cost_per_kW*solar_capacity + params$battery_install_cost + battery_capacity*params$battery_cost)
+  total_gen <- capacity_factor*solar_capacity*24*365
+  return(round(amort_payment/total_gen,3))
 }
 
 
