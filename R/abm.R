@@ -199,7 +199,7 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
     #area1,2 is the remaining area for solar
-    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 > old_solar1, solar2 > old_solar2, battery >= old_battery)
+    cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 >= old_solar1, solar2 >= old_solar2, battery >= old_battery)
     #add shading factors in financial utility!
     cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
@@ -219,7 +219,7 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   #if no transactions are possible (all roofs in b_s are at capacity) then just return a_s unchanged.
   if(dim(b_s1)[1] == 0) {
     print(paste("time", round(yeartime,1), "no PV system adopters because selected roofs at capacity"))
-    print(paste("PV system augmentors because selected roofs already at capacity"))
+    print(paste("PV system augmenters because selected roofs already at capacity"))
     return(a_s)
   }
   #if there are potential transactions
@@ -352,6 +352,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
     }
 
       meta <- tibble::tibble(parameter=c("Nrun","end_year","beta.","aversion_4.","aversion_5.","lambda.","p."),value=c(Nrun,simulation_end,beta.,aversion_4.,aversion_5.,lambda.,p.))
+      abm <- abm %>% dplyr::mutate(date=lubridate::ymd("2010-02-01") %m+% months((t-1)*2)) %>% dplyr::arrange(simulation,date) %>% dplyr::select(-t)
       return(list("abm"=abm,"scenario"=sD,"system"=meta))
   }
 
