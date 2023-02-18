@@ -36,6 +36,8 @@ get_capacities <- function(abm,groupvars = NULL, house_stock = 1.1){
 get_uptake <- function(abm,groupvars = NULL){
 
   groupvars <- c("simulation","date",groupvars)
+  Nrun <- abm[[3]] %>% dplyr::filter(parameter=="Nrun") %>% dplyr::pull(value)
+
   #abm0 <- abm[[1]] %>% dplyr::mutate(date=ymd("2010-02-01") %m+% months((t-1)*2)) %>% dplyr::arrange(simulation,date)
   #Nrun <- abm[[3]] %>% dplyr::filter(parameter=="Nrun") %>% dplyr::pull(value)
   attached <- abm[[1]] %>% dplyr::group_by(across(all_of(groupvars)))  %>% dplyr::filter(new_solar1+new_solar2 > 0 & new_battery >0 ) %>% dplyr::summarise(attached=n()/759)
@@ -68,11 +70,11 @@ get_adopters <- function(abm){
   pv_adopt <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter((new_solar1 > 0 | new_solar2 >0) & old_solar1==0 & old_solar2==0) %>% dplyr::summarise(pv_ad=n()/Nrun/759)
   #adopt <- adopt %>% group_by(year=year(date)) %>% summarise(n=mean(n)/759)
   pv_augment <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter((new_solar1 > old_solar1 | new_solar2 > old_solar2) & (old_solar1 > 0 | old_solar2 > 0)) %>% dplyr::summarise(pv_aug=n()/Nrun/759)
-  bat_adopt <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > 0 & old_battery == 0) %>% dplyr::summarise(b_ad=n()/Nrun)
-  bat_augment <- abm0 %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0) %>% dplyr::summarise(b_aug=n()/Nrun/759)
-  bat_augment_only <- abm0 %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0 & new_solar1 == old_solar1 & new_solar2 == old_solar2) %>% dplyr::summarise(b_aug_o=n()/Nrun/759)
+  bat_adopt <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > 0 & old_battery == 0) %>% dplyr::summarise(b_ad=n()/Nrun/759)
+  bat_augment <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0) %>% dplyr::summarise(b_aug=n()/Nrun/759)
+  bat_augment_only <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0 & new_solar1 == old_solar1 & new_solar2 == old_solar2) %>% dplyr::summarise(b_aug_o=n()/Nrun/759)
 
-  dates <- abm0$date %>% unique() %>% sort()
+  dates <- abm[[1]]$date %>% unique() %>% sort()
   dates <- tidyr::expand_grid(date=dates)
   pv_adopt <- dates %>% dplyr::left_join(pv_adopt) %>% dplyr::mutate(pv_ad=tidyr::replace_na(pv_ad,0))
   pv_augment <- dates %>% dplyr::left_join(pv_augment) %>% dplyr::mutate(pv_aug=tidyr::replace_na(pv_aug,0))
@@ -84,5 +86,21 @@ get_adopters <- function(abm){
   return(all)
 
 }
+
+get_installed <- function(abm){
+
+  #get mean size of new installation, installed area
+  Nrun <- abm[[3]] %>% dplyr::filter(parameter=="Nrun") %>% dplyr::pull(value)
+  pv_adopt <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter((new_solar1 > 0 | new_solar2 >0) & old_solar1==0 & old_solar2==0) %>% dplyr::summarise(pv_ad=n()/Nrun/759)
+  #adopt <- adopt %>% group_by(year=year(date)) %>% summarise(n=mean(n)/759)
+  pv_augment <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter((new_solar1 > old_solar1 | new_solar2 > old_solar2) & (old_solar1 > 0 | old_solar2 > 0)) %>% dplyr::summarise(pv_aug=n()/Nrun/759)
+  bat_adopt <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > 0 & old_battery == 0) %>% dplyr::summarise(b_ad=n()/Nrun/759)
+  bat_augment <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0) %>% dplyr::summarise(b_aug=n()/Nrun/759)
+  bat_augment_only <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::filter(new_battery > old_battery & old_battery > 0 & new_solar1 == old_solar1 & new_solar2 == old_solar2) %>% dplyr::summarise(b_aug_o=n()/Nrun/759)
+
+
+
+}
+
 
 

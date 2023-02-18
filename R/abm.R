@@ -207,8 +207,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     if(dim(cer_sys)[1] > 0){
      cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
      #reduce available area by
-     cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
-
+     #ERROR!! THIS HAS TO BE REVERSED IF TRANSACTION DOES NOT OCCUR
+     #cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
      cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
      return(cer_sys_opt)
     }
@@ -236,10 +236,11 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   #some agents do not transact even when du_fin > 0
   b_s_transact <- b_s1 %>% dplyr::filter(du_tot > 0)
   b_s_notransact <- b_s1 %>% dplyr::filter(du_tot <= 0)
-
+  #update areas for agents who transacted
+  b_s_transact <- b_s_transact %>% dplyr::mutate(area1 = area1 - (new_solar1-old_solar1)/kWpm2, area2 = area2 - (new_solar2-old_solar2)/kWpm2)
   b_s_transact$transaction <- T
   b_s_notransact$transaction <- F
-  #this line reverses transactions that would occur if du were only term
+  #this line reverses transactions did not occur because du_tot was negative
   b_s_notransact <- b_s_notransact %>% dplyr::mutate(new_solar1=old_solar1,new_solar2=old_solar2,new_battery=old_battery,new_imports=old_imports,new_exports=old_exports)
   #b_s <- update_cars(b_s,params)
   #
