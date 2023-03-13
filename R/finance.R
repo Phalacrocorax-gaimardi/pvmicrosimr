@@ -272,14 +272,14 @@ get_sys_dnpv <- function(params,demand,old_imports,old_exports,old_solar1,old_so
   first_year_bill_new <- params$e_price*new_imports + params$standing_charge
   bill_saving <- (params$e_price*new_imports-params$e_price*old_imports)
   #existing mss revenue
-  first_year_mss_revenue_old0 <- params$ceg*old_exports #add mss model (elec exports)
-  first_year_mss_revenue_old <- dplyr::case_when(first_year_mss_revenue_old0 < 200~first_year_mss_revenue_old0,
-                                                 first_year_mss_revenue_old0 >= 200~first_year_mss_revenue_old0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
+  first_year_ceg_revenue_old0 <- params$ceg*old_exports #add mss model (elec exports)
+  first_year_ceg_revenue_old <- dplyr::case_when(first_year_ceg_revenue_old0 < 200~first_year_ceg_revenue_old0,
+                                                 first_year_ceg_revenue_old0 >= 200~first_year_ceg_revenue_old0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
   #new mss revenue
-  first_year_mss_revenue_new0 <- params$ceg*new_exports
-  first_year_mss_revenue_new <- dplyr::case_when(first_year_mss_revenue_new0 < 200~first_year_mss_revenue_new0,
-                                                 first_year_mss_revenue_new0 >= 200~first_year_mss_revenue_new0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
-  mss_revenue <- (first_year_mss_revenue_new-first_year_mss_revenue_old)
+  first_year_ceg_revenue_new0 <- params$ceg*new_exports
+  first_year_ceg_revenue_new <- dplyr::case_when(first_year_ceg_revenue_new0 < 200~first_year_ceg_revenue_new0,
+                                                 first_year_ceg_revenue_new0 >= 200~first_year_ceg_revenue_new0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
+  ceg_revenue <- (first_year_ceg_revenue_new-first_year_ceg_revenue_old)
   #outgoings are +ve revenue is -ve
   #npv_loan_period <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),term_of_loan)*(first_year_bill_new-first_year_mss_revenue_new)+geo_sum(1/(1+discount_rate),term_of_loan)*amort_payment
   #npv_noloan_period <- ((1+electricity_inflation_rate)/(1+discount_rate))^term_of_loan*geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime-term_of_loan)*(first_year_bill_new-first_year_mss_revenue_new)
@@ -287,11 +287,11 @@ get_sys_dnpv <- function(params,demand,old_imports,old_exports,old_solar1,old_so
 
   npv_loan <- geo_sum(1/(1+discount_rate),term_of_loan)*amort_payment
   npv_bills <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*first_year_bill_new
-  npv_mss <- -geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*first_year_mss_revenue_new
+  npv_ceg <- -geo_sum((1+ceg_inflation_rate)/(1+discount_rate),system_lifetime)*first_year_ceg_revenue_new
   #print(paste("first year cost savings",first_year_cost_savings))
   npv_loan <- dplyr::case_when(term_of_loan==0~0, term_of_loan > 0~npv_loan)
-  npv_noinvest <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*(first_year_bill_old-first_year_mss_revenue_old)
-  npv <- npv_loan+npv_bills+npv_mss
+  npv_noinvest <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*(first_year_bill_old-first_year_ceg_revenue_old)
+  npv <- npv_loan+npv_bills+npv_ceg
   #npv <- dplyr::case_when(term_of_loan==0~0, term_of_loan > 0~npv_loan_period) + npv_noloan_period
 
   return(list("npv"=npv,"npv_noinvest"=npv_noinvest, "dnpv"=npv-npv_noinvest))
@@ -622,10 +622,29 @@ electricity_price_inflation_fun <- function(sD,yeartime){
   inflate_2050 <- sD %>% dplyr::filter(parameter=="electricity_price_inflation_2050") %>% dplyr::pull(value)
   cost <- approx(c(2010.5,2022.5,2030.5,2050.5), y=c(inflate_2010,inflate_2022,inflate_2030,inflate_2050),xout=yeartime,rule=2)$y
   return(cost)
+}
 
+#' ceg_price_inflation_fun
+#'
+#' feed-in tariff (ceg) price inflation expectations in decimal units. This is used in NPV calculations.
+#'
+#' @param sD scenario dataframe
+#' @param yeartime decimal time
+#'
+#' @return ceg inflation expectation in decimal units
+#' @export
+#'
+#' @examples
+ceg_price_inflation_fun <- function(sD,yeartime){
 
+  ceg_inflate_2022 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2022") %>% dplyr::pull(value)
+  ceg_inflate_2030 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2030") %>% dplyr::pull(value)
+  ceg_inflate_2050 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2050") %>% dplyr::pull(value)
+  cost <- approx(c(2022.5,2030.5,2050.5), y=c(ceg_inflate_2022,ceg_inflate_2030,ceg_inflate_2050),xout=yeartime,rule=2)$y
+  return(cost)
 
 }
+
 
 #' standing_charge_fun
 #'
