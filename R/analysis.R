@@ -41,12 +41,12 @@ get_uptake2 <- function(abm,groupvars = NULL){
 
   #abm0 <- abm[[1]] %>% dplyr::mutate(date=ymd("2010-02-01") %m+% months((t-1)*2)) %>% dplyr::arrange(simulation,date)
   #Nrun <- abm[[3]] %>% dplyr::filter(parameter=="Nrun") %>% dplyr::pull(value)
-  all <- abm[[1]] %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars2)))  %>% dplyr::filter(new_solar1+new_solar2 > 0) %>% dplyr::summarise(n=n()/Nrun)
-  all0 <- abm[[1]] %>% filter(simulation==1) %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars2))) %>%  dplyr::summarise(ntot=n())
-  all <- all0 %>% left_join(all) %>% dplyr::mutate(n=tidyr::replace_na(n,0)) %>% mutate(all=n/ntot)  %>% select(-n,-ntot)
+  all <- abm[[1]] %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars1)))  %>% dplyr::filter(new_solar1+new_solar2 > 0) %>% dplyr::summarise(n=dplyr::n())
+  all0 <- abm[[1]]  %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars1))) %>%  dplyr::summarise(ntot=dplyr::n())
+  all <- all0 %>% dplyr::left_join(all) %>% dplyr::mutate(n=tidyr::replace_na(n,0)) %>% dplyr::mutate(all=n/ntot)  %>% dplyr::select(-n,-ntot)
 
-  attached <- abm[[1]] %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars2)))  %>% dplyr::filter(new_solar1+new_solar2 > 0 & new_battery >0 ) %>% dplyr::summarise(n=n()/Nrun)
-  attached <- all0 %>% left_join(attached) %>% dplyr::mutate(n=tidyr::replace_na(n,0)) %>% mutate(attached=n/ntot) %>% select(-n,-ntot)
+  attached <- abm[[1]] %>% dplyr::group_by(dplyr::across(dplyr::all_of(groupvars1)))  %>% dplyr::filter(new_solar1+new_solar2 > 0 & new_battery >0 ) %>% dplyr::summarise(n=dplyr::n())
+  attached <- all0 %>% dplyr::left_join(attached) %>% dplyr::mutate(n=tidyr::replace_na(n,0)) %>% dplyr::mutate(attached=n/ntot) %>% dplyr::select(-n,-ntot)
 
   #dates <- abm[[1]]$date %>% unique() %>% sort()
   #dates <- tidyr::expand_grid(simulation=1:Nrun,date=dates)
@@ -110,7 +110,7 @@ get_energy <- function(abm,housing_stock=1.15){
   Nrun <- abm[[3]] %>% dplyr::filter(parameter=="Nrun") %>% dplyr::pull(value)
   power <- abm[[1]] %>% dplyr::group_by(date) %>% dplyr::summarise(imports=sum(new_imports,na.rm=T)/Nrun/759*housing_stock, exports=sum(new_exports)/Nrun/759*housing_stock,demand=sum(demand)/Nrun/759*housing_stock)
   #annual
-  power <- power %>% dplyr::group_by(year=year(date)) %>% summarise(imports=mean(imports), exports=mean(exports),demand=mean(demand))
+  power <- power %>% dplyr::group_by(year=lubridate::year(date)) %>% summarise(imports=mean(imports), exports=mean(exports),demand=mean(demand))
   power <- power %>% dplyr::mutate(solar=demand+exports-imports)
   #power <- power %>% pivot_longer(-year,names_to="grid",values_to="GWh")
   power <- power %>% dplyr::mutate(self_consumption=1-exports/solar,self_sufficiency = 1-imports/demand)

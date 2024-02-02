@@ -23,7 +23,7 @@
 #empirical_utils <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/empirical_utils.csv")
 #agents_init <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/agents_init.csv")
 #survey_raw <- readr::read_csv("~/Policy/AgentBasedModels/Survey/ESB Final data +LCA.csv")
-#seai_elec <- read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/electricity_household_demand_price_SEAI.csv")
+#seai_elec <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/electricity_household_demand_price_SEAI.csv")
 
 #seai_elec %>% filter(year==2018)
 #owner-occupier bills
@@ -31,6 +31,22 @@
 #bills_oo <- survey_raw %>% dplyr::filter(q1 %in% 2:5,q3 %in% 1:2) %>% dplyr::pull(q9_1) %>% dplyr::na_if(9999)
 #bills_all <- survey_raw %>% pull(q9_1) %>% na_if(9999)
 
+#cer_systems1 <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/pv_interp_all2_East-West.csv")
+#cer_systems2 <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/pv_interp_all2_SE-NW.csv")
+#cer_systems3 <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/pv_interp_all2_South-North.csv")
+#cer_systems4 <- readr::read_csv("~/Policy/AgentBasedModels/solarPV/IrelandData/pv_interp_all2_SW-NE.csv")
+#
+#cer_systems1$aspect <- "East-West"
+#cer_systems2$aspect <- "SE-NW"
+#cer_systems3$aspect <- "South-North"
+#cer_systems4$aspect <- "SW-NE"
+
+#cer_systems1 <- cer_systems1 %>% dplyr::inner_join(cer_survey %>% dplyr::select(housecode, demand))
+#cer_systems2 <- cer_systems2 %>% dplyr::inner_join(cer_survey %>% dplyr::select(housecode, demand))
+#cer_systems3 <- cer_systems3 %>% dplyr::inner_join(cer_survey %>% dplyr::select(housecode, demand))
+#cer_systems4 <- cer_systems4 %>% dplyr::inner_join(cer_survey %>% dplyr::select(housecode, demand))
+#
+#use_data(cer_systems1,overwrite=T,compress="")
 
 #' get_kWh_from_bills
 #'
@@ -45,8 +61,8 @@
 #' @examples
 get_kWh_from_bills <- function(b,mu=8.53){
 
-  e_price <- seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(price)
-  e_demand <- seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(kWh)
+  e_price <- pvmicrosimr::seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(price)
+  e_demand <- pvmicrosimr::seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(kWh)
   kWh <- mu*100*(b-cost_params$standing_charge/6)/e_price
   kWh[kWh < 0] <- 0
   return(kWh)
@@ -74,8 +90,8 @@ map_survey_to_cer <-function(params,lambda=2){
 
   #survey_raw <- read_csv("~/Policy/AgentBasedModels/Survey/ESB Final data +LCA.csv")
   #bills <- survey_raw$q9_1 %>% na_if(9999)
-  pv_survey1 <- pv_survey_oo
-  pv_survey1$bill <- bills_oo
+  pv_survey1 <- pvmicrosimr::pv_survey_oo
+  pv_survey1$bill <- pvmicrosimr::bills_oo
   #fill in missing bills
   #replace by median bill in category
   pv_survey1 <- pv_survey1 %>% dplyr::mutate(bill=dplyr::na_if(bill,9999))
@@ -87,14 +103,14 @@ map_survey_to_cer <-function(params,lambda=2){
   #slightly adjust mu from default that excludes NAs
   pv_survey1$demand <- get_kWh_from_bills(pv_survey1$bill,mu=8.37)
   #scale survey demand to reflect annual variability
-  f <- seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(kWh)/seai_elec %>% dplyr::filter(year==2010) %>% dplyr::pull(kWh)
+  f <- (pvmicrosimr::seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(kWh))/(pvmicrosimr::seai_elec %>% dplyr::filter(year==2010) %>% dplyr::pull(kWh))
   pv_survey1$demand <- pv_survey1$demand*params$e_demand_factor/f
 
   cer_match0  <- function(demand_1,lam){
     #matches stochastically to demand
     #demand_1 is pv_survey demand inferred from latest bi-monthly bills
     #
-    cer_survey_reduced0 <- cer_survey %>% dplyr::filter(housing_type != 1) %>% dplyr::select(housecode,demand)
+    cer_survey_reduced0 <- pvmicrosimr::cer_survey %>% dplyr::filter(housing_type != 1) %>% dplyr::select(housecode,demand)
 
     if(is.na(demand_1)) res <- cer_survey_reduced0 %>% dplyr::slice_sample(n=1) %>% dplyr::pull(housecode)
 

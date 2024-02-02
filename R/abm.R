@@ -14,22 +14,23 @@
 scenario_params_df <- function(sD,yeartime){
   #fast params
   scen <- tibble::tibble(parameter="yeartime", value=  yeartime)
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="battery_cost", value=  battery_cost_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="battery_install_cost", value=  battery_install_cost_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="pv_cost", value=  pv_cost_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="pv_install_cost", value=  pv_install_cost_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_price", value =  electricity_price_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_price_inflation", value =  electricity_price_inflation_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg_price_inflation", value =  ceg_price_inflation_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="standing_charge", value =  standing_charge_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg", value =  ceg_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg_tax_threshold", value =  ceg_tax_threshold_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="battery_cost", value=  pvmicrosimr::battery_cost_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="battery_install_cost", value=  pvmicrosimr::battery_install_cost_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="pv_cost", value=  pvmicrosimr::pv_cost_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="pv_install_cost", value=  pvmicrosimr::pv_install_cost_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_price", value =  pvmicrosimr::electricity_price_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_price_inflation", value =  pvmicrosimr::electricity_price_inflation_fun(sD,yeartime)))
+  #scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg_price_inflation", value =  ceg_price_inflation_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg_price_inflation", value =  0))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="standing_charge", value =  pvmicrosimr::standing_charge_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg", value =  pvmicrosimr::ceg_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="ceg_tax_threshold", value =  pvmicrosimr::ceg_tax_threshold_fun(sD,yeartime)))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="marginal_tax_rate", value =  dplyr::filter(sD, parameter=="marginal_tax_rate")$value))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="finance_rate", value =  finance_rate_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="finance_rate", value =  pvmicrosimr::finance_rate_fun(sD,yeartime)))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="term_of_loan", value =  dplyr::filter(sD, parameter=="term_of_loan")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="discount_rate", value =  dplyr::filter(sD, parameter=="discount_rate")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="system_lifetime", value =  dplyr::filter(sD, parameter=="system_lifetime")$value))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_demand_factor", value =  electricity_demand_factor_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="e_demand_factor", value =  pvmicrosimr::electricity_demand_factor_fun(sD,yeartime)))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_lower_threshold", value =  dplyr::filter(sD, parameter=="sol_lower_threshold")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_upper_threshold", value =  dplyr::filter(sD, parameter=="sol_upper_threshold")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="sol_lower_grant", value =  dplyr::filter(sD, parameter=="sol_lower_grant")$value))
@@ -39,13 +40,13 @@ scenario_params_df <- function(sD,yeartime){
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="grant_removal_date", value =  dplyr::filter(sD, parameter=="grant_removal_date")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_threshold", value =  dplyr::filter(sD, parameter=="bat_threshold")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="bat_grant", value =  dplyr::filter(sD, parameter=="bat_grant")$value))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="self_sufficiency_effect", value =  self_sufficiency_fun(sD,yeartime)))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="kWp_per_m2", value =  kWp_per_m2_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="self_sufficiency_effect", value =  pvmicrosimr::self_sufficiency_fun(sD,yeartime)))
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="kWp_per_m2", value =  pvmicrosimr::kWp_per_m2_fun(sD,yeartime)))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="usable_roof_fraction", value =  dplyr::filter(sD, parameter=="usable_roof_fraction")$value))
   scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="mean_shading_factor", value =  dplyr::filter(sD, parameter=="mean_shading_factor")$value))
-  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="acceleration_factor", value =  acceleration_fun(sD,yeartime)))
-
-  return(scen %>% fast_params())
+  scen <- dplyr::bind_rows(scen,tibble::tibble(parameter="acceleration_factor", value =  pvmicrosimr::acceleration_fun(sD,yeartime)))
+  #return(scen)
+  return(scen %>% pvmicrosimr::fast_params())
 }
 
 #' fast_params
@@ -65,7 +66,6 @@ fast_params <- function(params_long){
   test <- list2env(test)
   return(test)
 }
-
 
 #params <- scenario_params_df(sD,2024.4)
 #params <- fast_params(params)
@@ -88,8 +88,8 @@ fast_params <- function(params_long){
 initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
 
   #initialise to 2010
-  params <- scenario_params_df(scenario_wem,yeartime)
-  test <- map_survey_to_cer(params,lambda)
+  params <- pvmicrosimr::scenario_params_df(pvmicrosimr::scenario_wem,yeartime)
+  test <- pvmicrosimr::map_survey_to_cer(params,lambda)
   #owner occupier non-apartment
   #test <- test %>% dplyr::filter(q1 %in% 2:5,q3 %in% 1:2)
   test$ID <- 1:dim(test)[1]
@@ -100,7 +100,7 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
   agents <- agents %>% dplyr::select(-qc1,-region)
   #
   agents <- agents %>% dplyr::inner_join(cer_demand)
-  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(area1=get_rooftop_solar_area(house_type,demand,usable_roof_fraction = params$usable_roof_fraction))
+  agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(area1=pvmicrosimr::get_rooftop_solar_area(house_type,demand,usable_roof_fraction = params$usable_roof_fraction))
   agents <- agents %>% dplyr::mutate(area2 = area1 )
   #primitive shading model
   agents <- agents  %>% dplyr::rowwise() %>% dplyr::mutate(shading1=rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1), shading2 = rbeta(1,params$mean_shading_factor/(1-params$mean_shading_factor),1))
@@ -164,13 +164,13 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
 #' @export
 #' @importFrom magrittr %>%
 #' @examples
-update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = empirical_utils, p.,lambda.){
+update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = pvmicrosimr::empirical_utils, p.,lambda.){
 
   #
   du_social <- dplyr::filter(empirical_u,code=="qsp21")$du_average
   theta <- dplyr::filter(empirical_u,code=="theta")$du_average
   #params at yeartime
-  params <- scenario_params_df(sD,yeartime)
+  params <- pvmicrosimr::scenario_params_df(sD,yeartime)
   #self-sufficiency
   averse <- c(0,0,0,aversion_4.,aversion_5.)*params$self_sufficiency_effect
   #parameters from scenario corresponding to yeartime
@@ -189,26 +189,29 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
 
     #pv rooftop capacity constrained finacial utilities corresponding to costs in params
     #find current (old) values of imports and exports
-    cer_sys <- b_s %>% dplyr::left_join(dplyr::bind_rows(cer_systems1,cer_systems2,cer_systems3,cer_systems4))
-
+    cer_sys <- b_s %>% dplyr::left_join(dplyr::bind_rows(pvmicrosimr::cer_systems1,pvmicrosimr::cer_systems2,
+                                                         pvmicrosimr::cer_systems3,pvmicrosimr::cer_systems4))
+    #cer_sys <- cer_sys %>% dplyr::inner_join(cer_survey %>% dplyr::select(housecode, demand))
     #cer_sys1 <- b_s %>% dplyr::left_join(cer_systems1)
     #cer_sys2 <- b_s %>% dplyr::left_join(cer_systems2)
     #cer_sys3 <- b_s %>% dplyr::left_join(cer_systems3)
     #cer_sys4 <- b_s %>% dplyr::left_join(cer_systems4)
     #cer_sys <- dplyr::bind_rows(cer_sys1,cer_sys2,cer_sys3,cer_sys4)
-    cer_sys <- get_shaded_sys(cer_sys)
+    cer_sys <- pvmicrosimr::get_shaded_sys(cer_sys)
     #cer_sys <- b_s %>% dplyr::left_join(cer_systems)
     #new system is an enhancement
     #area1,2 is the remaining area for solar
+    #restruct the search to available areas
     cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 >= old_solar1, solar2 >= old_solar2, battery >= old_battery)
-    #add shading factors in financial utility!
-    cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
+    #calculate utilities: the slow part
+    cer_sys <- cer_sys %>% dplyr::mutate(du=pvmicrosimr::get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #optimal
     if(dim(cer_sys)[1]==0) return(cer_sys)
     if(dim(cer_sys)[1] > 0){
-     cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
-     #reduce available area by
-     #ERROR!! THIS HAS TO BE REVERSED IF TRANSACTION DOES NOT OCCUR
+      #cer_sys_opt <- cer_sys %>% dplyr::group_by(housecode) %>% dplyr::filter(du==max(du))
+     cer_sys_opt <- cer_sys %>% dplyr::group_by(ID) %>% dplyr::filter(du==max(du))
+     #reduce available area by area of new pv
+     #THIS HAS TO BE REVERSED IF TRANSACTION DOES NOT OCCUR
      #cer_sys_opt <- cer_sys_opt %>% dplyr::mutate(area1 = area1 - (solar1-old_solar1)/kWpm2, area2 = area2 - (solar2-old_solar2)/kWpm2)
      cer_sys_opt <- cer_sys_opt %>% dplyr::rename(new_solar1=solar1,new_solar2 = solar2,new_battery=battery,new_imports=imports,new_exports=exports)
      return(cer_sys_opt)
@@ -303,7 +306,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
   p. <- sD %>% dplyr::filter(parameter=="p.") %>% dplyr::pull(value)
   lambda. <- sD %>% dplyr::filter(parameter=="lambda.") %>% dplyr::pull(value)
   #print(paste("p.=",p.,"lambda.=",lambda.))
-
+  seai_elec <- pvmicrosimr::seai_elec
   #bi-monthly runs
   Nt <- round((simulation_end-year_zero+1)*6)
   #annual runs
@@ -316,21 +319,21 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
     number_of_cores <- parallel::detectCores() - n_unused_cores
     doParallel::registerDoParallel(number_of_cores)
 
-    abm <- foreach::foreach(j = 1:Nrun, .combine=dplyr::bind_rows,.export = c("initialise_agents","update_agents4")) %dopar% {
+    abm <- foreach::foreach(j = 1:Nrun, .combine=dplyr::bind_rows,.export = c("initialise_agents","update_agents4","make_artificial_society")) %dopar% {
     #abm <- foreach::foreach(j = 1:Nrun, .errorhandling = "pass",.export = c("initialise_agents","update_agents4")) %dopar% {
 
       #create a new artificial society for each run
       print(paste("Generating network for run",j,"...."))
-      if(!resample_society) social <- make_artificial_society(pv_society_oo,homophily,5)
+      if(!resample_society) social <- make_artificial_society(pvmicrosimr::pv_society_oo,pvmicrosimr::homophily,5)
       if(resample_society){
-        agent_resample <- sample(1:dim(pv_society_oo)[1],replace=T)
+        agent_resample <- sample(1:dim(pvmicrosimr::pv_society_oo)[1],replace=T)
         society_new <- society[agent_resample,]
-        society_new$ID <- 1:dim(pv_society_oo)[1]
-        social <- make_artificial_society(society_new,homophily,4.5)
+        society_new$ID <- 1:dim(pvmicrosimr::pv_society_oo)[1]
+        social <- make_artificial_society(society_new,pvmicrosimr::homophily,4.5)
       }
       #randomiise ICEV emissions assignment
       #choose segments
-      agents_in <- initialise_agents(agents0,year_zero)
+      agents_in <- initialise_agents(pvmicrosimr::agents_init,year_zero)
       #no transactions
       agents_in$transaction <- FALSE
       agent_ts<- vector("list",Nt)
@@ -342,13 +345,13 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
         #yeartime <- year_zero + (t-1)
         agent_ts[[t]] <- update_agents4(sD,yeartime,agent_ts[[t-1]],social_network=social,ignore_social, empirical_u = u_empirical,p.,lambda.) #static social network, everything else static
         #agent_ts[[t]] <- tibble::tibble(t=t)
-      }
+       }
 
-      for(t in 1:Nt) agent_ts[[t]]$t <- t
-      agent_ts <- tibble::as_tibble(data.table::rbindlist(agent_ts,fill=T))
-      agent_ts$simulation <- j
+       for(t in 1:Nt) agent_ts[[t]]$t <- t
+       agent_ts <- tibble::as_tibble(data.table::rbindlist(agent_ts,fill=T))
+       agent_ts$simulation <- j
       #add vertex degree
-      degrees <- tibble::tibble(ID=1:dim(pv_society_oo)[1],degree=igraph::degree(social))
+      degrees <- tibble::tibble(ID=1:dim(pvmicrosimr::pv_society_oo)[1],degree=igraph::degree(social))
       agent_ts <- agent_ts %>% dplyr::inner_join(degrees)
       agent_ts
     }
@@ -381,7 +384,7 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
       }
       #randomise ICEV emissions assignment
       #choose market segment for each agent
-      agents_in <- initialise_agents(agents0,year_zero)
+      agents_in <- initialise_agents(pvmicrosimr::agents_init,year_zero)
       #no transactions
       agents_in$transaction <- FALSE
       agent_ts <- vector("list",Nt)
@@ -424,3 +427,16 @@ runABM <- function(sD, Nrun=1,simulation_end=end_year,resample_society=F,n_unuse
 
 #test[[1]] %>% group_by(t,simulation) %>% summarise(bat=sum(new_battery)) %>% ggplot(aes(2010+(t-1),bat,colour=factor(simulation))) + geom_line() + scale_y_continuous(trans="sqrt")
 #test[[1]] %>% group_by(t,simulation) %>% summarise(pv=sum(new_solar)) %>% ggplot(aes(2010+(t-1),pv,colour=factor(simulation))) + geom_line() + scale_y_continuous(trans="sqrt")
+
+#number_of_cores <- parallel::detectCores() - 2
+#doParallel::registerDoParallel(number_of_cores)
+#Nrun <- 8
+#foreach::foreach(j = 1:Nrun, .errorhandling = "pass") %dopar% {
+
+ #yeartime <- 2010 + j
+  #tibble::tibble(parameter="yeartime", value=  yeartime)
+  #pvmicrosimr::scenario_params_df(pvmicrosimr::scenario_wem,yeartime)
+ # pvmicrosimr::electricity_price_fun(pvmicrosimr::scenario_wem,yeartime)
+  #pvmicrosimr::scenario_wem
+#}
+ #doParallel::stopImplicitCluster()

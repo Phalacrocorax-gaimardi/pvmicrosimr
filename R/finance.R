@@ -1,4 +1,4 @@
-#sD <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet=1)
+#scenario_wem <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_WEM")
 
 
 #' amort
@@ -256,6 +256,7 @@ get_sys_dnpv <- function(params,demand,old_imports,old_exports,old_solar1,old_so
   interest_rate <- params$finance_rate
   term_of_loan <- dplyr::case_when((d_solar==0 & d_battery==0)~0, (d_solar >0 || d_battery>0)~params$term_of_loan)
   electricity_inflation_rate <- params$e_price_inflation
+  ceg_inflation_rate <- params$ceg_price_inflation
   system_lifetime <- params$system_lifetime
   #assume no grant for augmenting an existing system
   grant <- dplyr::case_when((include_grant & old_solar == 0)~seai_grant(params,d_solar,d_battery),
@@ -594,8 +595,8 @@ pv_install_cost_fun <- function(sD,yeartime){
 #'
 #' @examples
 electricity_price_fun <- function(sD,yeartime){
-  seai_elec1 <- seai_elec %>% dplyr::filter(year >=2008) #add more costs here if known
 
+  seai_elec1 <- pvmicrosimr::seai_elec %>% dplyr::filter(year >=2008) #add more costs here if known
   cost_2022 <- sD %>% dplyr::filter(parameter=="electricity_price_2022") %>% dplyr::pull(value)
   cost_2030 <- sD %>% dplyr::filter(parameter=="electricity_price_2030") %>% dplyr::pull(value)
   cost_2050 <- sD %>% dplyr::filter(parameter=="electricity_price_2050") %>% dplyr::pull(value)
@@ -615,7 +616,7 @@ electricity_price_fun <- function(sD,yeartime){
 #'
 #' @examples
 electricity_price_inflation_fun <- function(sD,yeartime){
-
+   #
   inflate_2010 <- sD %>% dplyr::filter(parameter=="electricity_price_inflation_2010") %>% dplyr::pull(value)
   inflate_2022 <- sD %>% dplyr::filter(parameter=="electricity_price_inflation_2022") %>% dplyr::pull(value)
   inflate_2030 <- sD %>% dplyr::filter(parameter=="electricity_price_inflation_2030") %>% dplyr::pull(value)
@@ -636,12 +637,12 @@ electricity_price_inflation_fun <- function(sD,yeartime){
 #'
 #' @examples
 ceg_price_inflation_fun <- function(sD,yeartime){
-
+  #
   ceg_inflate_2022 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2022") %>% dplyr::pull(value)
   ceg_inflate_2030 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2030") %>% dplyr::pull(value)
   ceg_inflate_2050 <- sD %>% dplyr::filter(parameter=="ceg_price_inflation_2050") %>% dplyr::pull(value)
   cost <- approx(c(2022.5,2030.5,2050.5), y=c(ceg_inflate_2022,ceg_inflate_2030,ceg_inflate_2050),xout=yeartime,rule=2)$y
-  return(cost)
+  return(0)
 
 }
 
@@ -754,7 +755,7 @@ ceg_tax_threshold_fun <- function(sD,yeartime){
 #' @examples
 electricity_demand_factor_fun <- function(sD,yeartime){
 
-  seai_elec1 <- seai_elec %>% dplyr::filter(year <= 2020) #add more costs here if known
+  seai_elec1 <- pvmicrosimr::seai_elec %>% dplyr::filter(year <= 2020) #add more costs here if known
   seai_elec1 <- seai_elec1 %>% dplyr::mutate(factor=kWh/5302)
 
   fact_2021 <- sD %>% dplyr::filter(parameter=="electricity_demand_factor_2021") %>% dplyr::pull(value)
@@ -778,10 +779,8 @@ electricity_demand_factor_fun <- function(sD,yeartime){
 #' @examples
 self_sufficiency_fun <- function(sD,yeartime){
 
-
   fall_year <- sD %>% dplyr::filter(parameter=="self_suff_premium_fall") %>% dplyr::pull(value)
   vanish_year <- sD %>% dplyr::filter(parameter=="self_suff_premium_vanish") %>% dplyr::pull(value)
   fact <- approx(x=c(fall_year,vanish_year), y=c(1,0),xout=yeartime,rule=2)$y
   return(fact)
-
 }

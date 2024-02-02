@@ -10,7 +10,7 @@ update_agents4(
   agents_in,
   social_network,
   ignore_social = F,
-  empirical_u = empirical_utils,
+  empirical_u = pvmicrosimr::empirical_utils,
   p.,
   lambda.
 )

@@ -154,6 +154,7 @@ get_shaded_sys <- function(cer_sys){
   #returns a table of imports and exports for a shaded roof
   sol_vals <- cer_sys$solar1 %>% unique() %>% sort()
   cer_sys <- cer_sys %>% dplyr::mutate(solar1_eff=shading1*solar1,solar2_eff=shading2*solar2)
+
   cer_sys <- cer_sys %>% dplyr::group_by(housecode,battery) %>% dplyr::mutate(imports = pracma::interp2(x=sol_vals,
                                                                                     y=sol_vals,
                                                                                     Z=matrix(imports,length(sol_vals),length(sol_vals)),

@@ -5,16 +5,16 @@
 \alias{cer_systems1}
 \title{Calculated annual grid imports and exports as a function of installed solar and battery capacity for 155 households}
 \format{
-A data frame with 3,628,395 rows and 8 variables:
+A data frame with 3,628,395 rows and 7 variables:
 \describe{
 \item{housecode}{CER household code}
-\item{demand}{annual demand in kWh (survey year 2010)}
-\item{aspect}{orientation of house}
 \item{solar1}{installed solar capacity 0-25kW in increments of 0.5kW on first half-roof}
 \item{solar2}{installed solar capacity 0-25kW in increments of 0.5kW on second half-roof}
 \item{battery}{installed battery capacity 0-100kW in increments of 2.5KWh}
 \item{imports}{calculated total imports in kWh}
 \item{exports}{calculated total exports in kWh}
+\item{aspect}{orientation of house}
+\item{demand}{household annual demand (consumption) in kWh}
 #' }
 }
 \source{
