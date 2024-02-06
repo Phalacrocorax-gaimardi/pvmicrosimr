@@ -11,8 +11,8 @@ update_agents4(
   social_network,
   ignore_social = F,
   empirical_u = pvmicrosimr::empirical_utils,
-  p.,
-  lambda.
+  p. = 0.0085,
+  lambda. = 0.105
 )
 }
 \arguments{

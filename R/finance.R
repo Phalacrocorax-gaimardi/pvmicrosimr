@@ -1,77 +1,5 @@
 #scenario_wem <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_WEM")
-
-
-#' amort
-#'
-#' amortisation or annuity payment for unit principal
-#'
-#' @param r interest rate, decimal
-#' @param term term of loan or investment
-#'
-#' @return real value
-#' @export
-#'
-#' @examples
-amort <- function(r,term){
-  #amortisation payment (annuity)
-  res <- dplyr::case_when(r != 0~(r*(1+r)^term)/((1+r)^term-1),
-                   r == 0~1/term)
-  return(res)
-}
-
-#' geo_sum
-#'
-#' sum of a^i from i=1 to i=term
-#'
-#' @param a value
-#' @param term sum over 1..term
-#'
-#' @return real value
-#' @export
-#'
-#' @examples
-geo_sum <- function(a, term){
-  #the sum of a^i from i=1 to i=term
-  res <- dplyr::case_when(a != 1~a*(a^term-1)/(a-1),
-                   a ==1~term)
-  return(res)
-  }
-
-
-#' seai_grant
-#'
-#' seai grant for domestic solar installation 2022
-#'
-#' @param params fast scenario parameters
-#' @param s solar capacity in kW
-#' @param b battery capacity in kWh
-#'
-#' @return grant amount in euros
-#' @export
-#'
-#' @examples
-seai_grant <- function(params,s,b){
-
-  sol_lower_threshold <- params$sol_lower_threshold
-  sol_upper_threshold <- params$sol_upper_threshold
-  sol_lower_grant <- params$sol_lower_grant
-  sol_upper_grant <- params$sol_upper_grant
-  bat_threshold <- params$bat_threshold
-  bat_grant <- params$bat_grant
-
-  max_sol_grant <- sol_lower_threshold*sol_lower_grant + (sol_upper_threshold-sol_lower_threshold)*sol_upper_grant
-
-  grant <- dplyr::case_when(s <= sol_lower_threshold~sol_lower_grant*s,
-            s >= sol_upper_threshold & b < bat_threshold~max_sol_grant,
-            s >=sol_upper_threshold & b >= bat_threshold~max_sol_grant + bat_grant,
-            s > sol_lower_threshold & s < sol_upper_threshold~sol_lower_threshold*sol_lower_grant+(s-sol_lower_threshold)*sol_upper_grant)
-
-  grant <- dplyr::case_when( ((params$yeartime >= params$grant_introduction_date) & (params$yeartime <= params$grant_removal_date))~grant,
-                             params$yeartime < params$grant_introduction_date~0,
-                             params$yeartime > params$grant_removal_date~0)
-  return(grant)
-}
-
+#sD <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_G")
 
 cost_params <- tibble::tibble(
   install_cost_pv = 3000, #euros
@@ -116,6 +44,78 @@ cost_params_2018 <- tibble::tibble(
 )
 
 cost_params_2018_long <- cost_params_2018 %>% tidyr::pivot_longer(cols=everything(),names_to="parameter")
+
+
+#' amort
+#'
+#' amortisation or annuity payment for unit principal
+#'
+#' @param r interest rate, decimal
+#' @param term term of loan or investment
+#'
+#' @return real value
+#' @export
+#'
+#' @examples
+amort <- function(r,term){
+  #amortisation payment (annuity)
+  res <- dplyr::case_when(r != 0~(r*(1+r)^term)/((1+r)^term-1),
+                   r == 0~1/term)
+  return(res)
+}
+
+#' geo_sum
+#'
+#' sum of a^i from i=1 to i=term
+#'
+#' @param a value
+#' @param term sum over 1..term
+#'
+#' @return real value
+#' @export
+#'
+#' @examples
+geo_sum <- function(a, term){
+  #the sum of a^i from i=1 to i=term
+  res <- ifelse(a != 1, a*(a^term-1)/(a-1),term)
+  return(res)
+  }
+
+
+#' seai_grant
+#'
+#' seai grant for domestic solar installation 2022
+#'
+#' @param params fast scenario parameters
+#' @param s solar capacity in kW
+#' @param b battery capacity in kWh
+#'
+#' @return grant amount in euros
+#' @export
+#'
+#' @examples
+seai_grant <- function(params,s,b){
+
+  sol_lower_threshold <- params$sol_lower_threshold
+  sol_upper_threshold <- params$sol_upper_threshold
+  sol_lower_grant <- params$sol_lower_grant
+  sol_upper_grant <- params$sol_upper_grant
+  bat_threshold <- params$bat_threshold
+  bat_grant <- params$bat_grant
+
+  max_sol_grant <- sol_lower_threshold*sol_lower_grant + (sol_upper_threshold-sol_lower_threshold)*sol_upper_grant
+
+  grant <- dplyr::case_when(s <= sol_lower_threshold~sol_lower_grant*s,
+            s >= sol_upper_threshold & b < bat_threshold~max_sol_grant,
+            s >=sol_upper_threshold & b >= bat_threshold~max_sol_grant + bat_grant,
+            s > sol_lower_threshold & s < sol_upper_threshold~sol_lower_threshold*sol_lower_grant+(s-sol_lower_threshold)*sol_upper_grant)
+
+  grant <- dplyr::case_when( ((params$yeartime >= params$grant_introduction_date) & (params$yeartime <= params$grant_removal_date))~grant,
+                             params$yeartime < params$grant_introduction_date~0,
+                             params$yeartime > params$grant_removal_date~0)
+  return(grant)
+}
+
 
 
 #' get_sys_npv
@@ -331,75 +331,64 @@ get_sys_dnpv <- Vectorize(get_sys_dnpv,c("demand","old_imports","new_imports","o
 #'
 #' @examples
 get_sys_util_0 <- function(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery, new_imports,new_exports,d_solar1,d_solar2, d_battery,include_grant=T, customer = "domestic"){
-  #npv with cost parameters and term provided in cost_params
-  #paymnents are positive, revenue is negative
+  #npv with cost and technical parameters provided in params
+  #payments are positive, revenue is negative
   d_solar <- d_solar1+d_solar2
   old_solar <- old_solar1 + old_solar2
   #reduced installation cost model when there is an existing system
-  install_cost_pv <- dplyr::case_when((d_solar > 0 & old_solar ==0)~params$pv_install_cost, (d_solar > 0 & old_solar > 0)~params$pv_install_cost/2,
-                               d_solar==0~0)
+  #install_cost_pv <- dplyr::case_when((d_solar > 0 & old_solar ==0)~params$pv_install_cost, (d_solar > 0 & old_solar > 0)~params$pv_install_cost/2,
+  #                             d_solar==0~0)
   #assume zero cost to add a battery module
-  install_cost_bat <- dplyr::case_when((d_battery > 0 & old_battery == 0)~params$battery_install_cost,(d_battery > 0 & old_battery > 0)~0,
-                                d_battery==0~0)
-  install_cost <- install_cost_pv + install_cost_bat
+  #install_cost_bat <- dplyr::case_when((d_battery > 0 & old_battery == 0)~params$battery_install_cost,(d_battery > 0 & old_battery > 0)~0,
+  #                              d_battery==0~0)
+  install_cost_pv <- ifelse(d_solar > 0 & old_solar == 0, params$pv_install_cost, ifelse(d_solar > 0 & old_solar > 0, params$pv_install_cost / 2, 0))
+  install_cost_bat <- ifelse(d_battery > 0 & old_battery == 0, params$battery_install_cost, ifelse(d_battery > 0 & old_battery > 0, 0, 0))
 
-  #prorated mss for systems larger than 50kW
-  #if(solar_scale > 6 & customer == "non-domestic"){
-  # tariff <- ifelse(solar_scale <= cost_params$mss_kW_cap,cost_params$cep_price_per_kWh,cost_params$cep_price_per_kWh*50/solar_scale)
-  # exports_cap <- solar_scale*0.1*365*24*cost_params$cep_generation_cap
-  #}
-  #tariff <- case_when(customer == "domestic"~cost_params$ceg_price_per_kWh,
-  #                    (customer == "non-domestic" & solar_capacity = cost_params$mss_kW_cap & solar_capacity > 6)~cost_params$cep_price_per_kWh,
-  #                   (customer == "non-domestic" & solar_capacity > cost_params$mss_kW_cap)~cost_params$cep_price_per_kWh*50/solar_capacity)
-  #exports_cap <- case_when((customer == "non-domestic" & solar_scale > 6)~solar_scale*0.1*365*24*cost_params$cep_generation_cap)
-  #financials
-  discount_rate <- params$discount_rate
-  interest_rate <- params$finance_rate
-  term_of_loan <- dplyr::case_when((d_solar==0 & d_battery==0)~0, (d_solar >0 || d_battery>0)~params$term_of_loan)
-  electricity_inflation_rate <- params$e_price_inflation
+  install_cost <- install_cost_pv + install_cost_bat
+  term_of_loan <- ifelse((d_solar==0 & d_battery==0),0,params$term_of_loan)
+
   system_lifetime <- params$system_lifetime
   #assume no grant for augmenting an existing system
-  grant <- dplyr::case_when((include_grant & old_solar == 0)~seai_grant(params,d_solar,d_battery),
-                            (include_grant & old_solar > 0)~0,
-                            !include_grant~0)
+  grant <- ifelse(!include_grant,0,ifelse(old_solar > 0,0,seai_grant(params,d_solar,d_battery)))
   #first year bill savings
   capex <- install_cost + params$pv_cost*d_solar + params$battery_cost*d_battery-grant
   #print(paste("capital cost",capital_cost))
-  amort_payment <- amort(interest_rate,term_of_loan)*capex
-
-
+  amort_payment <- amort(params$discount_rate,term_of_loan)*capex
   #exising and new annual bills
   first_year_bill_old <- params$e_price*old_imports + params$standing_charge
   first_year_bill_new <- params$e_price*new_imports + params$standing_charge
   bill_saving <- (params$e_price*new_imports-params$e_price*old_imports)
-  #existing mss revenue
-  first_year_mss_revenue_old0 <- params$ceg*old_exports #add mss model (elec exports)
-  first_year_mss_revenue_old <- dplyr::case_when(first_year_mss_revenue_old0 < 200~first_year_mss_revenue_old0,
-                                             first_year_mss_revenue_old0 >= 200~first_year_mss_revenue_old0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
+  #existing mss revenue NB tax disregard is hard-wired 200
+  #first_year_mss_revenue_old0 <- params$ceg*old_exports #add mss model (elec exports)
+  #first_year_mss_revenue_old <- dplyr::case_when(first_year_mss_revenue_old0 < 200~first_year_mss_revenue_old0,
+  #                                           first_year_mss_revenue_old0 >= 200~first_year_mss_revenue_old0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
+  first_year_mss_revenue_old <- ifelse(params$ceg*old_exports < params$ceg_tax_threshold, params$ceg*old_exports,
+                                       params$ceg*old_exports*(1-params$marginal_tax_rate)+params$ceg_tax_threshold*params$marginal_tax_rate)
+
   #new mss revenue
-  first_year_mss_revenue_new0 <- params$ceg*new_exports
-  first_year_mss_revenue_new <- dplyr::case_when(first_year_mss_revenue_new0 < 200~first_year_mss_revenue_new0,
-                                             first_year_mss_revenue_new0 >= 200~first_year_mss_revenue_new0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
-  mss_revenue <- (first_year_mss_revenue_new-first_year_mss_revenue_old)
-  #outgoings are +ve revenue is -ve
-  #npv_loan_period <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),term_of_loan)*(first_year_bill_new-first_year_mss_revenue_new)+geo_sum(1/(1+discount_rate),term_of_loan)*amort_payment
-  #npv_noloan_period <- ((1+electricity_inflation_rate)/(1+discount_rate))^term_of_loan*geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime-term_of_loan)*(first_year_bill_new-first_year_mss_revenue_new)
-  #npv_noinvest <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*(first_year_bill_old-first_year_mss_revenue_old)
+  #first_year_mss_revenue_new0 <- params$ceg*new_exports
+  #first_year_mss_revenue_new <- dplyr::case_when(first_year_mss_revenue_new0 < 200~first_year_mss_revenue_new0,
+  #                                           first_year_mss_revenue_new0 >= 200~first_year_mss_revenue_new0*(1-params$marginal_tax_rate)+params$marginal_tax_rate*params$ceg_tax_threshold)
+  first_year_mss_revenue_new <- ifelse(params$ceg*new_exports < params$ceg_tax_threshold, params$ceg*new_exports,
+                                                 params$ceg*new_exports*(1-params$marginal_tax_rate)+params$ceg_tax_threshold*params$marginal_tax_rate)
 
-  npv_loan <- geo_sum(1/(1+discount_rate),term_of_loan)*amort_payment
-  npv_bills <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*first_year_bill_new
-  npv_mss <- -geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*first_year_mss_revenue_new
-  #print(paste("first year cost savings",first_year_cost_savings))
-  npv_loan <- dplyr::case_when(term_of_loan==0~0, term_of_loan > 0~npv_loan)
-  npv_noinvest <- geo_sum((1+electricity_inflation_rate)/(1+discount_rate),system_lifetime)*(first_year_bill_old-first_year_mss_revenue_old)
+  #mss_revenue <- (first_year_mss_revenue_new-first_year_mss_revenue_old)
+  #geo <- sum(((1 + params$e_price_inflation) / (1 + params$discount_rate))^(1:params$system_lifetime))
+  npv_loan <- geo_sum(1/(1+params$discount_rate),term_of_loan)*amort_payment
+  #npv_loan <- sum(1 / (1 + params$discount_rate)^(1:term_of_loan))*amort_payment
+  npv_bills <- geo_sum((1+params$e_price_inflation)/(1+params$discount_rate),system_lifetime)*first_year_bill_new
+  #npv_bills <- sum(((1 + params$e_price_inflation) / (1 + params$discount_rate))^(1:params$system_lifetime))*first_year_bill_new
+  npv_mss <- -geo_sum((1+params$ceg_price_inflation)/(1+params$discount_rate),system_lifetime)*first_year_mss_revenue_new
+  #npv_mss <- -sum(((1 + params$ceg_price_inflation) / (1 + params$discount_rate))^(1:params$system_lifetime))*first_year_mss_revenue_new
+  #npv_loan <- ifelse(term_of_loan==0~0, term_of_loan > 0~npv_loan)
+  npv_loan <- ifelse(term_of_loan==0,0,npv_loan)
+  npv_noinvest <- geo_sum((1+params$e_price_inflation)/(1+params$discount_rate),system_lifetime)*(first_year_bill_old-first_year_mss_revenue_old)
   npv <- npv_loan+npv_bills+npv_mss
-  #npv <- dplyr::case_when(term_of_loan==0~0, term_of_loan > 0~npv_loan_period) + npv_noloan_period
-
+  #positive is good
   return((npv_noinvest-npv)/npv_noinvest)
 }
 
 get_sys_util_0 <- Vectorize(get_sys_util_0,c("demand","old_imports","new_imports","old_exports","new_exports","old_solar1","old_solar2","d_solar1","d_solar2","old_battery","d_battery"))
-
 
 #test <- cer_systems %>% mutate(du_econ = get_sys_util_0(demand,imports,exports,solar_capacity,battery_capacity))
 #test <- test %>% inner_join(cer %>% select(hcode,rooftop_potential))
@@ -481,20 +470,6 @@ get_self_sufficiency <- function(imports,demand){
   return(self_sufficiency)
 }
 
-
-#df <- tibble()
-#ceg0 <- cost_params$ceg_price_per_kWh
-#for(ceg in seq(0,0.24,by=0.02)){
-#   print(paste("ceg =", ceg))
-#   cost_params$ceg_price_per_kWh <- ceg
-#   test <- cer_systems %>% mutate(npv=get_sys_npv_0(demand,imports,exports,solar_capacity,battery_capacity, method="npv"))
-#   test <- test %>% inner_join(cer %>% select(hcode,rooftop_potential))
-#   res <- test %>% group_by(hcode) %>% filter(solar_capacity <= rooftop_potential) %>% filter(npv==min(npv,na.rm=T))
-#   res$ceg <- ceg
-#   df <- bind_rows(df,res)
-# }
-
-#df %>% mutate(self_sufficiency = get_self_sufficiency(imports,demand), self_consumption = get_self_consumption(solar_capacity,exports))
 
 
 #' battery_cost_fun

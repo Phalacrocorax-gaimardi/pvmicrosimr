@@ -164,7 +164,7 @@ initialise_agents <- function(agents,yeartime,lambda=2,clipping=T){
 #' @export
 #' @importFrom magrittr %>%
 #' @examples
-update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = pvmicrosimr::empirical_utils, p.,lambda.){
+update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F, empirical_u = pvmicrosimr::empirical_utils, p.=0.0085,lambda.=0.105){
 
   #
   du_social <- dplyr::filter(empirical_u,code=="qsp21")$du_average
@@ -204,7 +204,11 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #restruct the search to available areas
     cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 >= old_solar1, solar2 >= old_solar2, battery >= old_battery)
     #calculate utilities: the slow part
-    cer_sys <- cer_sys %>% dplyr::mutate(du=pvmicrosimr::get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
+    cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
+    #cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery)) %>% system.time()
+    #use data.table?
+    #cer_sys <- data.table::data.table(cer_sys)
+    #cer_sys[][,du:=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery)] %>% system.time()
     #optimal
     if(dim(cer_sys)[1]==0) return(cer_sys)
     if(dim(cer_sys)[1] > 0){
@@ -222,8 +226,8 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
   b_s1 <- get_sys_optimal(params,b_s)
   #if no transactions are possible (all roofs in b_s are at capacity) then just return a_s unchanged.
   if(dim(b_s1)[1] == 0) {
-    print(paste("time", round(yeartime,1), "no PV system adopters because selected roofs at capacity"))
-    print(paste("PV system augmenters because selected roofs already at capacity"))
+    print(paste("time", round(yeartime,1), "no PV system adopters because poor economics or selected roofs at capacity"))
+    #print(paste("PV system augmenters because selected roofs already at capacity"))
     return(a_s)
   }
   #if there are potential transactions

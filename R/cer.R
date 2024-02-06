@@ -63,7 +63,7 @@ get_kWh_from_bills <- function(b,mu=8.53){
 
   e_price <- pvmicrosimr::seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(price)
   e_demand <- pvmicrosimr::seai_elec %>% dplyr::filter(year==2018) %>% dplyr::pull(kWh)
-  kWh <- mu*100*(b-cost_params$standing_charge/6)/e_price
+  kWh <- mu*100*(b-cost_params_2018$standing_charge/6)/e_price
   kWh[kWh < 0] <- 0
   return(kWh)
 
