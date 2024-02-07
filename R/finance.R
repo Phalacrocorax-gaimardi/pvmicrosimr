@@ -560,7 +560,7 @@ pv_install_cost_fun <- function(sD,yeartime){
 
 #' electricity_price_fun
 #'
-#' actual path of electricity prices. For inflation expectations see electricity_price_inflation_fun
+#' actual (currenly to mid 2023) and projected path of electricity prices. Data from seai_elec. For inflation expectations see electricity_price_inflation_fun.
 #'
 #' @param sD scenario dataframe
 #' @param yeartime decimal time
@@ -572,10 +572,10 @@ pv_install_cost_fun <- function(sD,yeartime){
 electricity_price_fun <- function(sD,yeartime){
 
   seai_elec1 <- pvmicrosimr::seai_elec %>% dplyr::filter(year >=2008) #add more costs here if known
-  cost_2022 <- sD %>% dplyr::filter(parameter=="electricity_price_2022") %>% dplyr::pull(value)
+  #cost_2022 <- sD %>% dplyr::filter(parameter=="electricity_price_2022") %>% dplyr::pull(value)
   cost_2030 <- sD %>% dplyr::filter(parameter=="electricity_price_2030") %>% dplyr::pull(value)
   cost_2050 <- sD %>% dplyr::filter(parameter=="electricity_price_2050") %>% dplyr::pull(value)
-  cost <- approx(x=c(seai_elec1$year+0.5,2022.5,2030.5,2050.5), y=c(seai_elec1$price/100,cost_2022,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+  cost <- approx(x=c(seai_elec1$year+0.5,2030.5,2050.5), y=c(seai_elec1$price/100,cost_2030,cost_2050),xout=yeartime,rule=2)$y
   return(cost)
 }
 

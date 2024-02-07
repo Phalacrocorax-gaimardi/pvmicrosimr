@@ -5,7 +5,7 @@
 \alias{seai_elec}
 \title{simple annual Irish electricty household demand and price data from SEAI}
 \format{
-A data frame with 17 rows and 3 variables:
+A data frame with 19 rows and 3 variables:
 \describe{
 \item{year}{year}
 \item{kWh}{mean demand}
@@ -13,12 +13,12 @@ A data frame with 17 rows and 3 variables:
 }
 }
 \source{
-\url{https://www.seai.ie/data-and-insights/seai-statistics/key-statistics/prices/}
+\url{https://www.seai.ie/data-and-insights/seai-statistics/key-statistics/prices/} \url{https://www.seai.ie/data-and-insights/seai-statistics/key-statistics/residential/}
 }
 \usage{
 seai_elec
 }
 \description{
-2005-2021
+2005-2023
 }
 \keyword{datasets}

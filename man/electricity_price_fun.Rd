@@ -15,5 +15,5 @@ electricity_price_fun(sD, yeartime)
 price per kWh in euros
 }
 \description{
-actual path of electricity prices. For inflation expectations see electricity_price_inflation_fun
+actual (currenly to mid 2023) and projected path of electricity prices. Data from seai_elec. For inflation expectations see electricity_price_inflation_fun.
 }
