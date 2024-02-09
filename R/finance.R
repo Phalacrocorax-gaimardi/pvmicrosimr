@@ -1,5 +1,5 @@
 #scenario_wem <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_WEM")
-#sD <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_G")
+#sD <- readxl::read_xlsx("~/Policy/AgentBasedModels/solarPV/scenario_parameters.xlsx",sheet="scenario_G2")
 
 cost_params <- tibble::tibble(
   install_cost_pv = 3000, #euros
@@ -489,9 +489,13 @@ battery_cost_fun <- function(sD,yeartime){
   cost_2015 <- sD %>% dplyr::filter(parameter=="bat_cost_2015") %>% dplyr::pull(value)
 
   cost_2022 <- sD %>% dplyr::filter(parameter=="bat_cost_2022") %>% dplyr::pull(value)
+  cost_2025 <- sD %>% dplyr::filter(parameter=="bat_cost_2025") %>% dplyr::pull(value)
   cost_2030 <- sD %>% dplyr::filter(parameter=="bat_cost_2030") %>% dplyr::pull(value)
   cost_2050 <- sD %>% dplyr::filter(parameter=="bat_cost_2050") %>% dplyr::pull(value)
-  cost <- approx(x=c(2010.5,2015.5,2022.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+  ifelse(identical(cost_2025,numeric(0)),
+         cost <- approx(x=c(2010.5,2015.5,2022.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2030,cost_2050),xout=yeartime,rule=2)$y,
+         cost <- approx(x=c(2010.5,2015.5,2022.5,2025.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2025,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+  )
   return(cost)
 }
 
@@ -531,9 +535,14 @@ pv_cost_fun <- function(sD,yeartime){
   cost_2010 <- sD %>% dplyr::filter(parameter=="pv_cost_2010") %>% dplyr::pull(value)
   cost_2015 <- sD %>% dplyr::filter(parameter=="pv_cost_2015") %>% dplyr::pull(value)
   cost_2022 <- sD %>% dplyr::filter(parameter=="pv_cost_2022") %>% dplyr::pull(value)
+  cost_2025 <- sD %>% dplyr::filter(parameter=="pv_cost_2025") %>% dplyr::pull(value)
   cost_2030 <- sD %>% dplyr::filter(parameter=="pv_cost_2030") %>% dplyr::pull(value)
   cost_2050 <- sD %>% dplyr::filter(parameter=="pv_cost_2050") %>% dplyr::pull(value)
-  cost <- approx(x=c(2010.5,2015.5,2022.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+  ifelse(identical(cost_2025,numeric(0)),
+                   cost <- approx(x=c(2010.5,2015.5,2022.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2030,cost_2050),xout=yeartime,rule=2)$y,
+                   cost <- approx(x=c(2010.5,2015.5,2022.5,2025.5,2030.5,2050.5), y=c(cost_2010,cost_2015,cost_2022,cost_2025,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+                   )
+
   return(cost)
 }
 
@@ -573,10 +582,14 @@ electricity_price_fun <- function(sD,yeartime){
 
   seai_elec1 <- pvmicrosimr::seai_elec %>% dplyr::filter(year >=2008) #add more costs here if known
   #cost_2022 <- sD %>% dplyr::filter(parameter=="electricity_price_2022") %>% dplyr::pull(value)
+  cost_2025 <- sD %>% dplyr::filter(parameter=="electricity_price_2025") %>% dplyr::pull(value)
   cost_2030 <- sD %>% dplyr::filter(parameter=="electricity_price_2030") %>% dplyr::pull(value)
   cost_2050 <- sD %>% dplyr::filter(parameter=="electricity_price_2050") %>% dplyr::pull(value)
-  cost <- approx(x=c(seai_elec1$year+0.5,2030.5,2050.5), y=c(seai_elec1$price/100,cost_2030,cost_2050),xout=yeartime,rule=2)$y
-  return(cost)
+  ifelse(identical(cost_2025,numeric(0)),
+         cost <- approx(x=c(seai_elec1$year+0.5,2030.5,2050.5), y=c(seai_elec1$price/100,cost_2030,cost_2050),xout=yeartime,rule=2)$y,
+         cost <- approx(x=c(seai_elec1$year+0.5,2025.5,2030.5,2050.5), y=c(seai_elec1$price/100,cost_2025,cost_2030,cost_2050),xout=yeartime,rule=2)$y
+  )
+         return(cost)
 }
 
 #' electricity_price_inflation_fun
