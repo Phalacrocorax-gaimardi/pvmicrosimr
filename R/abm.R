@@ -204,7 +204,9 @@ update_agents4 <- function(sD,yeartime,agents_in, social_network,ignore_social=F
     #restruct the search to available areas
     cer_sys <- cer_sys %>% dplyr::filter(solar1 <= old_solar1+kWpm2*area1,solar2 <= old_solar2+kWpm2*area2, solar1 >= old_solar1, solar2 >= old_solar2, battery >= old_battery)
     #calculate utilities: the slow part
-    cer_sys <- cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
+    params_vec <- mget(ls(params),params) %>% unlist()
+    #consider vectorising get_sys_util_c
+    cer_sys <- cer_sys %>% dplyr::rowwise() %>% dplyr::mutate(du=get_sys_util_c(params_vec,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery))
     #cer_sys %>% dplyr::mutate(du=get_sys_util_0(params,demand,old_imports,old_exports,old_solar1,old_solar2,old_battery,imports,exports,solar1-old_solar1,solar2-old_solar2,battery-old_battery)) %>% system.time()
     #use data.table?
     #cer_sys <- data.table::data.table(cer_sys)

@@ -116,6 +116,40 @@ seai_grant <- function(params,s,b){
   return(grant)
 }
 
+#' seai_grant_fast
+#'
+#' The fast version of seai_grant
+#'
+#' @param params fast scenario parameters
+#' @param s solar capacity in kW
+#' @param b battery capacity in kWh
+#'
+#' @return grant amount in euros
+#' @export
+#'
+#' @examples
+seai_grant_fast <- function (params, s, b) {
+
+  sol_lower_threshold <- params$sol_lower_threshold
+  sol_upper_threshold <- params$sol_upper_threshold
+  sol_lower_grant <- params$sol_lower_grant
+  sol_upper_grant <- params$sol_upper_grant
+  bat_threshold <- params$bat_threshold
+  bat_grant <- params$bat_grant
+  max_sol_grant <- sol_lower_threshold * sol_lower_grant + (sol_upper_threshold - sol_lower_threshold) * sol_upper_grant
+
+  grant <- ifelse(s <= sol_lower_threshold, sol_lower_grant * s,
+                  ifelse(s >= sol_upper_threshold & b < bat_threshold, max_sol_grant,
+                         ifelse(s >= sol_upper_threshold & b >= bat_threshold,max_sol_grant + bat_grant,
+                                ifelse((s > sol_lower_threshold) & (s < sol_upper_threshold), sol_lower_threshold * sol_lower_grant + (s - sol_lower_threshold) * sol_upper_grant,NA
+                                ))))
+
+
+  grant <- ifelse((params$yeartime >= params$grant_introduction_date) & (params$yeartime <= params$grant_removal_date),grant,0)
+
+  return(grant)
+}
+
 
 
 #' get_sys_npv
@@ -349,7 +383,7 @@ get_sys_util_0 <- function(params,demand,old_imports,old_exports,old_solar1,old_
 
   system_lifetime <- params$system_lifetime
   #assume no grant for augmenting an existing system
-  grant <- ifelse(!include_grant,0,ifelse(old_solar > 0,0,seai_grant(params,d_solar,d_battery)))
+  grant <- ifelse(!include_grant,0,ifelse(old_solar > 0,0,seai_grant_fast(params,d_solar,d_battery)))
   #first year bill savings
   capex <- install_cost + params$pv_cost*d_solar + params$battery_cost*d_battery-grant
   #print(paste("capital cost",capital_cost))
